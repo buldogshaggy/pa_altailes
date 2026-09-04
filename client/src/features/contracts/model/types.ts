@@ -25,15 +25,24 @@ export type RequestRow = {
   vehicleInfo?: VehicleInfo
 }
 
+export type CreateRequestItem = {
+  nomenclature: string
+  packCount: number
+}
+
 export type CreateRequestPayload = {
   legalEntity: string
   productType: 'mdf' | 'pogonazh'
-  nomenclature: string
-  volume?: string
-  packCount?: string
   requestContract: string
   direction: string
   supplier?: Supplier | string
+  /** Только для MDF: 1 заявка = 1 машина */
+  vehicleCount?: number
+  /** Позиции отгрузки (для MDF сумма пачек должна быть ровно 8) */
+  items?: CreateRequestItem[]
+  /** Погонаж: одна номенклатура + объём */
+  nomenclature?: string
+  volume?: string
 }
 
 export type PowerOfAttorneyAttachment = {

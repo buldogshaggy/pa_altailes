@@ -233,43 +233,76 @@ export function RequestsProvider({ children }: Props) {
   const createRequest = useCallback(async (payload: CreateRequestPayload) => {
     setError('')
 
+    const vehicleCount =
+      payload.productType === 'mdf' ? Math.max(1, Math.floor(payload.vehicleCount ?? 1)) : 1
+
+    const buildShipmentLines = (supplier: string) => {
+      if (payload.productType === 'mdf' && payload.items && payload.items.length > 0) {
+        return payload.items.map((item, index) => ({
+          lineNumber: index + 1,
+          warehouse: supplier,
+          nomenclature: item.nomenclature,
+          quantity: String(item.packCount),
+          shipped: '0',
+          price: '—',
+          amount: '—',
+        }))
+      }
+
+      return [
+        {
+          lineNumber: 1,
+          warehouse: supplier,
+          nomenclature: payload.nomenclature ?? '—',
+          quantity: payload.volume ?? '0',
+          shipped: '0',
+          price: '—',
+          amount: '—',
+        },
+      ]
+    }
+
     try {
-      const createdRequest = await createRequestOnServer(payload)
-      setRequests((prevRequests) => [
-        createdRequest,
-        ...prevRequests,
-      ])
+      const createdRequests: RequestRow[] = []
+
+      for (let index = 0; index < vehicleCount; index += 1) {
+        createdRequests.push(await createRequestOnServer(payload))
+      }
+
+      setRequests((prevRequests) => [...createdRequests, ...prevRequests])
     } catch {
       const now = new Date()
       const supplier = payload.supplier ?? SUPPLIERS[0]
-      const quantity = payload.productType === 'mdf' ? (payload.packCount ?? '0') : (payload.volume ?? '0')
+      const shipmentLines = buildShipmentLines(supplier)
 
       setRequests((prevRequests) => {
-        const localRequest: RequestRow = {
-          id: getNextRequestId(prevRequests, now),
-          requestDate: formatDate(now),
-          requestStatus: REQUEST_STATUSES.new,
-          requestContract: payload.requestContract,
-          legalEntity: payload.legalEntity,
-          supplier,
-          productKind: PRODUCT_KIND_LABELS[payload.productType],
-          shipmentLines: [
-            {
-              lineNumber: 1,
-              warehouse: supplier,
-              nomenclature: payload.nomenclature,
-              quantity,
-              shipped: '0',
-              price: '—',
-              amount: '—',
-            },
-          ],
-          direction: payload.direction,
+        const localRequests: RequestRow[] = []
+        let nextRequests = prevRequests
+
+        for (let index = 0; index < vehicleCount; index += 1) {
+          const localRequest: RequestRow = {
+            id: getNextRequestId(nextRequests, now),
+            requestDate: formatDate(now),
+            requestStatus: REQUEST_STATUSES.new,
+            requestContract: payload.requestContract,
+            legalEntity: payload.legalEntity,
+            supplier,
+            productKind: PRODUCT_KIND_LABELS[payload.productType],
+            shipmentLines,
+            direction: payload.direction,
+          }
+
+          localRequests.push(localRequest)
+          nextRequests = [localRequest, ...nextRequests]
         }
 
-        return [localRequest, ...prevRequests]
+        return nextRequests
       })
-      setError('API недоступен: заявка сохранена локально (демо-режим).')
+      setError(
+        vehicleCount > 1
+          ? `API недоступен: создано ${vehicleCount} одинаковых заявок локально (демо-режим).`
+          : 'API недоступен: заявка сохранена локально (демо-режим).',
+      )
     }
   }, [])
 

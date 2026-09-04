@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Contract } from '../../dashboard'
-import type { CreateRequestPayload } from '../model/types'
-import { shipmentProductsByCategory } from '../model/shipmentProducts'
+import type { CreateRequestItem, CreateRequestPayload } from '../model/types'
+import {
+  MDF_PACKS_PER_VEHICLE,
+  shipmentProductsByCategory,
+} from '../model/shipmentProducts'
+import TruckLoadScheme from './TruckLoadScheme'
 
 const productOptions = [
   { value: 'mdf', label: 'Плиты MDF' },
@@ -16,10 +20,22 @@ const logisticsOptions = [
 type ProductType = (typeof productOptions)[number]['value']
 type LogisticsType = (typeof logisticsOptions)[number]['value']
 
+type MdfLineDraft = {
+  id: string
+  nomenclature: string
+  packCount: string
+}
+
 const nomenclatureByProduct = {
   mdf: shipmentProductsByCategory('mdf'),
   pogonazh: shipmentProductsByCategory('pogonazh'),
 } satisfies Record<ProductType, string[]>
+
+const createEmptyMdfLine = (): MdfLineDraft => ({
+  id: crypto.randomUUID(),
+  nomenclature: '',
+  packCount: '',
+})
 
 type Props = {
   isOpen: boolean
@@ -50,11 +66,13 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
   const [selectedProduct, setSelectedProduct] = useState<ProductType | null>(null)
   const [selectedNomenclature, setSelectedNomenclature] = useState('')
   const [volume, setVolume] = useState('')
-  const [packCount, setPackCount] = useState('')
+  const [mdfLines, setMdfLines] = useState<MdfLineDraft[]>([createEmptyMdfLine()])
+  const [vehicleCount, setVehicleCount] = useState('1')
   const [selectedLogistics, setSelectedLogistics] = useState<LogisticsType | null>(null)
   const [direction, setDirection] = useState('')
   const [shipmentDate, setShipmentDate] = useState('')
   const [submitError, setSubmitError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const activeLegalEntity = hasMultipleLegalEntities
     ? selectedRequestLegalEntity
@@ -75,11 +93,13 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
     setSelectedProduct(null)
     setSelectedNomenclature('')
     setVolume('')
-    setPackCount('')
+    setMdfLines([createEmptyMdfLine()])
+    setVehicleCount('1')
     setSelectedLogistics(null)
     setDirection('')
     setShipmentDate('')
     setSubmitError('')
+    setIsSubmitting(false)
   }
 
   useEffect(() => {
@@ -117,18 +137,45 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
     setSelectedProduct(product)
     setSelectedNomenclature('')
     setVolume('')
-    setPackCount('')
+    setMdfLines([createEmptyMdfLine()])
+    setVehicleCount('1')
   }
 
-  const hasValidQuantity =
-    selectedProduct === 'mdf'
-      ? Number(packCount) > 0
-      : selectedProduct === 'pogonazh'
-        ? Number(volume) > 0
-        : false
+  const mdfItems: CreateRequestItem[] = mdfLines
+    .map((line) => ({
+      nomenclature: line.nomenclature.trim(),
+      packCount: Number(line.packCount),
+    }))
+    .filter((item) => item.nomenclature.length > 0 && Number.isFinite(item.packCount) && item.packCount > 0)
+
+  const totalMdfPacks = mdfItems.reduce((sum, item) => sum + item.packCount, 0)
+  const parsedVehicleCount = Number(vehicleCount)
+  const hasValidVehicleCount =
+    Number.isInteger(parsedVehicleCount) && parsedVehicleCount >= 1
+
+  const hasDuplicateMdfNomenclature =
+    new Set(mdfItems.map((item) => item.nomenclature)).size !== mdfItems.length
+
+  const hasValidMdfLines =
+    mdfItems.length > 0 &&
+    mdfLines.every((line) => {
+      const packs = Number(line.packCount)
+      return line.nomenclature.trim().length > 0 && Number.isInteger(packs) && packs > 0
+    }) &&
+    totalMdfPacks === MDF_PACKS_PER_VEHICLE &&
+    !hasDuplicateMdfNomenclature &&
+    hasValidVehicleCount
+
+  const hasValidPogonazh =
+    selectedNomenclature.trim().length > 0 && Number(volume) > 0
 
   const canGoToStep2 = selectedProduct !== null
-  const canGoToStep3 = selectedNomenclature.trim().length > 0 && hasValidQuantity
+  const canGoToStep3 =
+    selectedProduct === 'mdf'
+      ? hasValidMdfLines
+      : selectedProduct === 'pogonazh'
+        ? hasValidPogonazh
+        : false
 
   const canCreateRequest =
     (!hasMultipleLegalEntities || selectedRequestLegalEntity.trim().length > 0) &&
@@ -144,28 +191,63 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
 
   const availableNomenclature = selectedProduct ? nomenclatureByProduct[selectedProduct] : []
 
+  const updateMdfLine = (lineId: string, patch: Partial<Omit<MdfLineDraft, 'id'>>) => {
+    setMdfLines((prevLines) =>
+      prevLines.map((line) => (line.id === lineId ? { ...line, ...patch } : line)),
+    )
+  }
+
+  const addMdfLine = () => {
+    setMdfLines((prevLines) => [...prevLines, createEmptyMdfLine()])
+  }
+
+  const removeMdfLine = (lineId: string) => {
+    setMdfLines((prevLines) =>
+      prevLines.length <= 1 ? prevLines : prevLines.filter((line) => line.id !== lineId),
+    )
+  }
+
+  const packsHintClass =
+    totalMdfPacks === MDF_PACKS_PER_VEHICLE
+      ? 'text-emerald-700'
+      : totalMdfPacks > MDF_PACKS_PER_VEHICLE
+        ? 'text-rose-600'
+        : 'text-slate-600'
+
   const submitCreateRequest = async () => {
     if (!canCreateRequest || !selectedProduct) {
       return
     }
 
     setSubmitError('')
+    setIsSubmitting(true)
 
     try {
-      await onCreate({
-        legalEntity: activeLegalEntity,
-        productType: selectedProduct,
-        nomenclature: selectedNomenclature,
-        ...(selectedProduct === 'mdf'
-          ? { packCount: packCount.trim() }
-          : { volume: volume.trim() }),
-        direction: direction.trim(),
-        requestContract: selectedContractNumber,
-      })
+      if (selectedProduct === 'mdf') {
+        await onCreate({
+          legalEntity: activeLegalEntity,
+          productType: 'mdf',
+          items: mdfItems,
+          vehicleCount: parsedVehicleCount,
+          direction: direction.trim(),
+          requestContract: selectedContractNumber,
+        })
+      } else {
+        await onCreate({
+          legalEntity: activeLegalEntity,
+          productType: 'pogonazh',
+          nomenclature: selectedNomenclature,
+          volume: volume.trim(),
+          direction: direction.trim(),
+          requestContract: selectedContractNumber,
+        })
+      }
 
       onClose()
     } catch {
       setSubmitError('Не удалось создать заявку. Попробуйте еще раз.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -242,7 +324,121 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
           </div>
         )}
 
-        {requestStep === nomenclatureStep && (
+        {requestStep === nomenclatureStep && selectedProduct === 'mdf' && (
+          <div className="space-y-4">
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-700">
+                {nomenclatureStep} шаг - Состав заявки (1 машина = {MDF_PACKS_PER_VEHICLE} пачек)
+              </p>
+              <p className="text-xs text-slate-500">
+                В одной заявке должно быть ровно {MDF_PACKS_PER_VEHICLE} пачек. Можно добавить
+                несколько позиций номенклатуры.
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-700">Количество машин</p>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={vehicleCount}
+                onChange={(event) => setVehicleCount(event.target.value)}
+                placeholder="Например, 3"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                На каждую машину будет создана отдельная одинаковая заявка
+                {hasValidVehicleCount ? ` (${parsedVehicleCount} шт.)` : ''}
+              </p>
+            </div>
+
+            <TruckLoadScheme items={mdfItems} totalPacks={totalMdfPacks} />
+
+            <div className="space-y-3">
+              {mdfLines.map((line, index) => (
+                <div
+                  key={line.id}
+                  className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 md:grid-cols-[1fr_8rem_auto]"
+                >
+                  <div>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Позиция {index + 1}
+                    </p>
+                    <select
+                      value={line.nomenclature}
+                      onChange={(event) =>
+                        updateMdfLine(line.id, { nomenclature: event.target.value })
+                      }
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+                    >
+                      <option value="">Выберите продукцию</option>
+                      {availableNomenclature.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Пачек
+                    </p>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={line.packCount}
+                      onChange={(event) => updateMdfLine(line.id, { packCount: event.target.value })}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
+                    />
+                  </div>
+
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => removeMdfLine(line.id)}
+                      disabled={mdfLines.length <= 1}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={addMdfLine}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                + Добавить позицию
+              </button>
+
+              <p className={`text-sm font-semibold ${packsHintClass}`}>
+                Заполнено: {totalMdfPacks} / {MDF_PACKS_PER_VEHICLE} пачек
+              </p>
+            </div>
+
+            {hasDuplicateMdfNomenclature ? (
+              <p className="text-sm text-rose-600">
+                Одна и та же номенклатура выбрана несколько раз — объедините пачки в одну позицию.
+              </p>
+            ) : null}
+
+            {totalMdfPacks > 0 && totalMdfPacks !== MDF_PACKS_PER_VEHICLE ? (
+              <p className="text-sm text-rose-600">
+                Нужно ровно {MDF_PACKS_PER_VEHICLE} пачек на одну машину.
+              </p>
+            ) : null}
+          </div>
+        )}
+
+        {requestStep === nomenclatureStep && selectedProduct === 'pogonazh' && (
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="mb-1 text-sm font-semibold text-slate-700">
@@ -263,30 +459,16 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
             </div>
 
             <div>
-              <p className="mb-1 text-sm font-semibold text-slate-700">
-                {selectedProduct === 'mdf' ? 'Количество пачек' : 'Объем'}
-              </p>
-              {selectedProduct === 'mdf' ? (
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={packCount}
-                  onChange={(event) => setPackCount(event.target.value)}
-                  placeholder="Введите количество пачек"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
-                />
-              ) : (
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={volume}
-                  onChange={(event) => setVolume(event.target.value)}
-                  placeholder="Введите объем"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
-                />
-              )}
+              <p className="mb-1 text-sm font-semibold text-slate-700">Объем</p>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={volume}
+                onChange={(event) => setVolume(event.target.value)}
+                placeholder="Введите объем"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
+              />
             </div>
           </div>
         )}
@@ -365,6 +547,13 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
                 />
               </div>
             </div>
+
+            {selectedProduct === 'mdf' && hasValidVehicleCount && parsedVehicleCount > 1 ? (
+              <p className="md:col-span-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                Будет создано {parsedVehicleCount} одинаковых заявки по {MDF_PACKS_PER_VEHICLE} пачек
+                (по одной на машину).
+              </p>
+            ) : null}
           </div>
         )}
 
@@ -374,7 +563,7 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
           <button
             type="button"
             onClick={() => setRequestStep((prevStep) => Math.max(prevStep - 1, 1))}
-            disabled={requestStep === 1}
+            disabled={requestStep === 1 || isSubmitting}
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Назад
@@ -396,10 +585,14 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
               <button
                 type="button"
                 onClick={submitCreateRequest}
-                disabled={!canCreateRequest}
+                disabled={!canCreateRequest || isSubmitting}
                 className="rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Создать
+                {isSubmitting
+                  ? 'Создание...'
+                  : selectedProduct === 'mdf' && hasValidVehicleCount && parsedVehicleCount > 1
+                    ? `Создать ${parsedVehicleCount} заявки`
+                    : 'Создать'}
               </button>
             )}
           </div>

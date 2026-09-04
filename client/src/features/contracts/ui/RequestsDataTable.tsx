@@ -9,11 +9,17 @@ import type { RequestRow } from '../model/types'
 
 type Props = {
   requests: RequestRow[]
+  selectedRequestId?: string | null
   onOpenRequest?: (request: RequestRow) => void
   onOpenPowerOfAttorney?: (request: RequestRow) => void
 }
 
-function RequestsDataTable({ requests, onOpenRequest, onOpenPowerOfAttorney }: Props) {
+function RequestsDataTable({
+  requests,
+  selectedRequestId,
+  onOpenRequest,
+  onOpenPowerOfAttorney,
+}: Props) {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full table-fixed border-separate border-spacing-0 text-sm">
@@ -29,28 +35,28 @@ function RequestsDataTable({ requests, onOpenRequest, onOpenPowerOfAttorney }: P
         </colgroup>
         <thead>
           <tr>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600 text-center">
+            <th className="border-b border-slate-200 px-3 py-3 text-center font-semibold text-slate-600">
               Дата
             </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600 text-center">
+            <th className="border-b border-slate-200 px-3 py-3 text-center font-semibold text-slate-600">
               Номер
             </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600 text-center">
+            <th className="border-b border-slate-200 px-3 py-3 text-center font-semibold text-slate-600">
               Статус
             </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600 text-center">
+            <th className="border-b border-slate-200 px-3 py-3 text-center font-semibold text-slate-600">
               Договор
             </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600 text-center">
+            <th className="border-b border-slate-200 px-3 py-3 text-center font-semibold text-slate-600">
               Поставщик
             </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600 text-center">
+            <th className="border-b border-slate-200 px-3 py-3 text-center font-semibold text-slate-600">
               Вид продукции
             </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600 text-center">
+            <th className="border-b border-slate-200 px-3 py-3 text-center font-semibold text-slate-600">
               Адрес доставки
             </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600 text-center">
+            <th className="border-b border-slate-200 px-3 py-3 text-center font-semibold text-slate-600">
               Доверенность
             </th>
           </tr>
@@ -62,6 +68,7 @@ function RequestsDataTable({ requests, onOpenRequest, onOpenPowerOfAttorney }: P
             const needsFill =
               requiresPowerOfAttorney(request.requestStatus) && !request.powerOfAttorney
             const hasPowerOfAttorney = Boolean(request.powerOfAttorney || request.vehicleInfo)
+            const isSelected = selectedRequestId === request.id
 
             const handleRowClick = () => {
               onOpenRequest?.(request)
@@ -78,12 +85,14 @@ function RequestsDataTable({ requests, onOpenRequest, onOpenPowerOfAttorney }: P
               <tr
                 key={request.id}
                 onClick={handleRowClick}
-                className="cursor-pointer transition hover:bg-blue-50/60"
+                className={`cursor-pointer transition ${
+                  isSelected ? 'bg-blue-50' : 'hover:bg-blue-50/60'
+                }`}
               >
-                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 font-semibold text-blue-600 text-center">
+                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-center font-semibold text-blue-600">
                   {request.requestDate}
                 </td>
-                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-slate-700 text-center">
+                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-center text-slate-700">
                   {request.id}
                 </td>
                 <td className="border-b border-slate-100 px-3 py-3 text-center">
@@ -95,16 +104,16 @@ function RequestsDataTable({ requests, onOpenRequest, onOpenPowerOfAttorney }: P
                     {request.requestStatus}
                   </span>
                 </td>
-                <td className="border-b border-slate-100 px-3 py-3 text-slate-700 text-center">
+                <td className="border-b border-slate-100 px-3 py-3 text-center text-slate-700">
                   {request.requestContract}
                 </td>
-                <td className="border-b border-slate-100 px-3 py-3 text-slate-700 text-center">
+                <td className="border-b border-slate-100 px-3 py-3 text-center text-slate-700">
                   {request.supplier}
                 </td>
-                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-slate-700 text-center">
+                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-center text-slate-700">
                   {getRequestProductKind(request)}
                 </td>
-                <td className="border-b border-slate-100 px-3 py-3 text-slate-700 text-center">
+                <td className="border-b border-slate-100 px-3 py-3 text-center text-slate-700">
                   {request.direction}
                 </td>
                 <td

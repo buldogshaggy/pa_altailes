@@ -120,6 +120,21 @@ app.MapPost("/api/requests", (CreateRequestDto payload) =>
         ? "Рубцовский ЛДК"
         : payload.Supplier.Trim();
 
+    List<ShipmentLineDto>? shipmentLines = null;
+    if (payload.Items is { Count: > 0 })
+    {
+        shipmentLines = payload.Items
+            .Select((item, index) => new ShipmentLineDto(
+                index + 1,
+                supplier,
+                item.Nomenclature.Trim(),
+                item.PackCount.ToString(),
+                "0",
+                "—",
+                "—"))
+            .ToList();
+    }
+
     var newRequest = new RequestDto(
         Id: GetNextRequestId(requests, now),
         RequestDate: now.ToString("dd.MM.yyyy"),
@@ -130,7 +145,8 @@ app.MapPost("/api/requests", (CreateRequestDto payload) =>
         Nomenclature: payload.Nomenclature.Trim(),
         Direction: payload.Direction.Trim(),
         PowerOfAttorney: payload.PowerOfAttorney,
-        VehicleInfo: payload.VehicleInfo);
+        VehicleInfo: payload.VehicleInfo,
+        ShipmentLines: shipmentLines);
 
     requests.Insert(0, newRequest);
 
@@ -267,6 +283,8 @@ record RequestDto(
     VehicleInfoDto? VehicleInfo = null,
     List<ShipmentLineDto>? ShipmentLines = null);
 
+record CreateRequestItemDto(string Nomenclature, int PackCount);
+
 record CreateRequestDto(
     string LegalEntity,
     string Nomenclature,
@@ -274,6 +292,8 @@ record CreateRequestDto(
     string RequestContract,
     string Direction,
     string? Supplier = null,
+    string? ProductType = null,
+    List<CreateRequestItemDto>? Items = null,
     PowerOfAttorneyDto? PowerOfAttorney = null,
     VehicleInfoDto? VehicleInfo = null);
 

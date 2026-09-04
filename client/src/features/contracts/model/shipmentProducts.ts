@@ -11,6 +11,9 @@ export type ProductKindLabel = (typeof PRODUCT_KIND_LABELS)[keyof typeof PRODUCT
 
 export const PRODUCT_KINDS: ProductKindLabel[] = Object.values(PRODUCT_KIND_LABELS)
 
+/** В одной заявке по плитам MDF должно быть ровно 8 пачек (1 машина). */
+export const MDF_PACKS_PER_VEHICLE = 8
+
 export type ShipmentProduct = {
   name: string
   category: ShipmentProductCategory

@@ -4,13 +4,13 @@ import TopBar from './components/layout/TopBar'
 
 function App() {
   return (
-    <div className="flex min-h-screen bg-[#f3f6fb] text-slate-900">
+    <div className="flex h-screen overflow-hidden bg-[#f3f6fb] text-slate-900">
       <Sidebar />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <TopBar />
 
-        <main className="flex-1 p-4 md:p-6 xl:p-8">
+        <main className="min-h-0 flex-1 overflow-auto p-4 md:p-6 xl:p-8">
           <Outlet />
         </main>
       </div>
