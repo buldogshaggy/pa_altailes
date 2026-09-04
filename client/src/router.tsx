@@ -6,6 +6,8 @@ import LoginPage from './pages/LoginPage.tsx'
 import ReportsPage from './pages/ReportsPage.tsx'
 import RequestsPage from './pages/RequestsPage.tsx'
 
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/'
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -38,4 +40,4 @@ export const router = createBrowserRouter([
     path: '*',
     element: <Navigate to="/" replace />,
   },
-])
+], { basename })
