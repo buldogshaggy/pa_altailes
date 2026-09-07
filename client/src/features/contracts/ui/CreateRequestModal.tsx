@@ -336,23 +336,6 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
               </p>
             </div>
 
-            <div>
-              <p className="mb-1 text-sm font-semibold text-slate-700">Количество машин</p>
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={vehicleCount}
-                onChange={(event) => setVehicleCount(event.target.value)}
-                placeholder="Например, 3"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                На каждую машину будет создана отдельная одинаковая заявка
-                {hasValidVehicleCount ? ` (${parsedVehicleCount} шт.)` : ''}
-              </p>
-            </div>
-
             <TruckLoadScheme items={mdfItems} totalPacks={totalMdfPacks} />
 
             <div className="space-y-3">
@@ -435,6 +418,23 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
                 Нужно ровно {MDF_PACKS_PER_VEHICLE} пачек на одну машину.
               </p>
             ) : null}
+
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-700">Количество машин</p>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={vehicleCount}
+                onChange={(event) => setVehicleCount(event.target.value)}
+                placeholder="Например, 3"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                На каждую машину будет создана отдельная одинаковая заявка
+                {hasValidVehicleCount ? ` (${parsedVehicleCount} шт.)` : ''}
+              </p>
+            </div>
           </div>
         )}
 
