@@ -38,6 +38,8 @@ export const createRequestOnServer = async (payload: CreateRequestPayload): Prom
     volume,
     requestContract: payload.requestContract,
     direction: payload.direction,
+    logisticsType: payload.logisticsType,
+    contactPhone: payload.contactPhone,
     supplier: payload.supplier,
     productType: payload.productType,
     items: payload.items,

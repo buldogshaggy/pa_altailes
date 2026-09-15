@@ -290,6 +290,7 @@ export function RequestsProvider({ children }: Props) {
             productKind: PRODUCT_KIND_LABELS[payload.productType],
             shipmentLines,
             direction: payload.direction,
+            contactPhone: payload.contactPhone,
           }
 
           localRequests.push(localRequest)

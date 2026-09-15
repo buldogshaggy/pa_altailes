@@ -77,7 +77,7 @@ function LoginForm() {
         </label>
       </div>
 
-      {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
+      <p className="mt-3 min-h-5 text-sm text-rose-600">{error || '\u00a0'}</p>
 
       <button
         type="submit"

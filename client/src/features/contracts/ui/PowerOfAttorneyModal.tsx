@@ -413,11 +413,13 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
                 showPhoneError ? 'border-rose-400' : 'border-slate-300'
               }`}
             />
-            {showPhoneError ? (
-              <span className="mt-1 block text-xs font-normal text-rose-600">
-                Введите номер в формате +7 (XXX) XXX-XX-XX
-              </span>
-            ) : null}
+            <span
+              className={`mt-1 block min-h-4 text-xs font-normal ${
+                showPhoneError ? 'text-rose-600' : 'invisible'
+              }`}
+            >
+              Введите номер в формате +7 (XXX) XXX-XX-XX
+            </span>
           </label>
 
           <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
@@ -581,13 +583,11 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
               </div>
             ) : null}
 
-            {attachmentError ? (
-              <p className="mt-2 text-sm text-rose-600">{attachmentError}</p>
-            ) : null}
+            <p className="mt-2 min-h-5 text-sm text-rose-600">{attachmentError || '\u00a0'}</p>
           </div>
         </div>
 
-        {submitError ? <p className="mt-4 text-sm text-rose-600">{submitError}</p> : null}
+        <p className="mt-4 min-h-5 text-sm text-rose-600">{submitError || '\u00a0'}</p>
 
         <div className="mt-6 flex justify-end gap-2">
           <button

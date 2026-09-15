@@ -190,7 +190,7 @@ function RequestsPage() {
           </div>
         )}
 
-        {error ? <p className="mb-3 shrink-0 text-sm text-rose-600">{error}</p> : null}
+        <p className="mb-3 min-h-5 shrink-0 text-sm text-rose-600">{error || '\u00a0'}</p>
 
         <div className="min-h-0 flex-1 overflow-auto">
           <RequestsDataTable

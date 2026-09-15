@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Contract } from '../../dashboard'
+import { formatPhoneMask, isValidRussianPhone } from '../model/phoneMask'
 import type { CreateRequestItem, CreateRequestPayload } from '../model/types'
 import {
+  MDF_BOARD_TYPES,
+  MDF_FORMATS_BY_TYPE,
   MDF_PACKS_PER_VEHICLE,
+  MDF_SIDES,
+  MDF_THICKNESSES_MM,
+  formatMdfNomenclature,
   shipmentProductsByCategory,
+  type MdfBoardType,
+  type MdfSide,
 } from '../model/shipmentProducts'
 import TruckLoadScheme from './TruckLoadScheme'
 
@@ -22,7 +30,10 @@ type LogisticsType = (typeof logisticsOptions)[number]['value']
 
 type MdfLineDraft = {
   id: string
-  nomenclature: string
+  boardType: MdfBoardType | ''
+  format: string
+  side: MdfSide | ''
+  thicknessMm: string
   packCount: string
 }
 
@@ -33,7 +44,10 @@ const nomenclatureByProduct = {
 
 const createEmptyMdfLine = (): MdfLineDraft => ({
   id: crypto.randomUUID(),
-  nomenclature: '',
+  boardType: '',
+  format: '',
+  side: '',
+  thicknessMm: '',
   packCount: '',
 })
 
@@ -69,6 +83,8 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
   const [mdfLines, setMdfLines] = useState<MdfLineDraft[]>([createEmptyMdfLine()])
   const [vehicleCount, setVehicleCount] = useState('1')
   const [selectedLogistics, setSelectedLogistics] = useState<LogisticsType | null>(null)
+  const [contactPhone, setContactPhone] = useState('')
+  const [phoneTouched, setPhoneTouched] = useState(false)
   const [direction, setDirection] = useState('')
   const [shipmentDate, setShipmentDate] = useState('')
   const [submitError, setSubmitError] = useState('')
@@ -96,6 +112,8 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
     setMdfLines([createEmptyMdfLine()])
     setVehicleCount('1')
     setSelectedLogistics(null)
+    setContactPhone('')
+    setPhoneTouched(false)
     setDirection('')
     setShipmentDate('')
     setSubmitError('')
@@ -143,7 +161,7 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
 
   const mdfItems: CreateRequestItem[] = mdfLines
     .map((line) => ({
-      nomenclature: line.nomenclature.trim(),
+      nomenclature: formatMdfNomenclature(line),
       packCount: Number(line.packCount),
     }))
     .filter((item) => item.nomenclature.length > 0 && Number.isFinite(item.packCount) && item.packCount > 0)
@@ -160,7 +178,7 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
     mdfItems.length > 0 &&
     mdfLines.every((line) => {
       const packs = Number(line.packCount)
-      return line.nomenclature.trim().length > 0 && Number.isInteger(packs) && packs > 0
+      return formatMdfNomenclature(line).length > 0 && Number.isInteger(packs) && packs > 0
     }) &&
     totalMdfPacks === MDF_PACKS_PER_VEHICLE &&
     !hasDuplicateMdfNomenclature &&
@@ -177,10 +195,14 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
         ? hasValidPogonazh
         : false
 
+  const hasValidPickupPhone =
+    selectedLogistics !== 'pickup' || isValidRussianPhone(contactPhone)
+
   const canCreateRequest =
     (!hasMultipleLegalEntities || selectedRequestLegalEntity.trim().length > 0) &&
     selectedContractNumber.trim().length > 0 &&
     selectedLogistics !== null &&
+    hasValidPickupPhone &&
     direction.trim().length > 0 &&
     shipmentDate.length > 0
 
@@ -223,14 +245,20 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
     setIsSubmitting(true)
 
     try {
+      const logisticsFields = {
+        direction: direction.trim(),
+        requestContract: selectedContractNumber,
+        logisticsType: selectedLogistics ?? undefined,
+        contactPhone: selectedLogistics === 'pickup' ? contactPhone : undefined,
+      }
+
       if (selectedProduct === 'mdf') {
         await onCreate({
           legalEntity: activeLegalEntity,
           productType: 'mdf',
           items: mdfItems,
           vehicleCount: parsedVehicleCount,
-          direction: direction.trim(),
-          requestContract: selectedContractNumber,
+          ...logisticsFields,
         })
       } else {
         await onCreate({
@@ -238,8 +266,7 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
           productType: 'pogonazh',
           nomenclature: selectedNomenclature,
           volume: volume.trim(),
-          direction: direction.trim(),
-          requestContract: selectedContractNumber,
+          ...logisticsFields,
         })
       }
 
@@ -336,78 +363,136 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
               </p>
             </div>
 
-            <div>
-              <p className="mb-1 text-sm font-semibold text-slate-700">Количество машин</p>
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={vehicleCount}
-                onChange={(event) => setVehicleCount(event.target.value)}
-                placeholder="Например, 3"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
-              />
-              <p className="mt-1 text-xs text-slate-500">
-                На каждую машину будет создана отдельная одинаковая заявка
-                {hasValidVehicleCount ? ` (${parsedVehicleCount} шт.)` : ''}
-              </p>
-            </div>
-
             <TruckLoadScheme items={mdfItems} totalPacks={totalMdfPacks} />
 
             <div className="space-y-3">
-              {mdfLines.map((line, index) => (
-                <div
-                  key={line.id}
-                  className="grid gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3 md:grid-cols-[1fr_8rem_auto]"
-                >
-                  <div>
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Позиция {index + 1}
-                    </p>
-                    <select
-                      value={line.nomenclature}
-                      onChange={(event) =>
-                        updateMdfLine(line.id, { nomenclature: event.target.value })
-                      }
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
-                    >
-                      <option value="">Выберите продукцию</option>
-                      {availableNomenclature.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+              {mdfLines.map((line, index) => {
+                const formatOptions = line.boardType ? MDF_FORMATS_BY_TYPE[line.boardType] : []
 
-                  <div>
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Пачек
-                    </p>
-                    <input
-                      type="number"
-                      min="1"
-                      step="1"
-                      value={line.packCount}
-                      onChange={(event) => updateMdfLine(line.id, { packCount: event.target.value })}
-                      placeholder="0"
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
-                    />
-                  </div>
+                return (
+                  <div
+                    key={line.id}
+                    className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Позиция {index + 1}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => removeMdfLine(line.id)}
+                        disabled={mdfLines.length <= 1}
+                        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Удалить
+                      </button>
+                    </div>
 
-                  <div className="flex items-end">
-                    <button
-                      type="button"
-                      onClick={() => removeMdfLine(line.id)}
-                      disabled={mdfLines.length <= 1}
-                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Удалить
-                    </button>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="md:col-span-2">
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Вид плиты
+                        </p>
+                        <select
+                          value={line.boardType}
+                          onChange={(event) =>
+                            updateMdfLine(line.id, {
+                              boardType: event.target.value as MdfBoardType | '',
+                              format: '',
+                            })
+                          }
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+                        >
+                          <option value="">Выберите вид плиты</option>
+                          {MDF_BOARD_TYPES.map((type) => (
+                            <option key={type.value} value={type.value}>
+                              {type.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Формат плиты, мм
+                        </p>
+                        <select
+                          value={line.format}
+                          onChange={(event) => updateMdfLine(line.id, { format: event.target.value })}
+                          disabled={!line.boardType}
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
+                        >
+                          <option value="">
+                            {line.boardType ? 'Выберите формат' : 'Сначала выберите вид плиты'}
+                          </option>
+                          {formatOptions.map((format) => (
+                            <option key={format} value={format}>
+                              {format}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Стороны
+                        </p>
+                        <select
+                          value={line.side}
+                          onChange={(event) =>
+                            updateMdfLine(line.id, { side: event.target.value as MdfSide | '' })
+                          }
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+                        >
+                          <option value="">Односторонняя или двухсторонняя</option>
+                          {MDF_SIDES.map((side) => (
+                            <option key={side.value} value={side.value}>
+                              {side.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Толщина плиты
+                        </p>
+                        <select
+                          value={line.thicknessMm}
+                          onChange={(event) =>
+                            updateMdfLine(line.id, { thicknessMm: event.target.value })
+                          }
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
+                        >
+                          <option value="">Выберите толщину</option>
+                          {MDF_THICKNESSES_MM.map((thickness) => (
+                            <option key={thickness} value={String(thickness)}>
+                              {thickness} мм
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Количество пакетов
+                        </p>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={line.packCount}
+                          onChange={(event) =>
+                            updateMdfLine(line.id, { packCount: event.target.value })
+                          }
+                          placeholder="0"
+                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -424,17 +509,35 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
               </p>
             </div>
 
-            {hasDuplicateMdfNomenclature ? (
-              <p className="text-sm text-rose-600">
-                Одна и та же номенклатура выбрана несколько раз — объедините пачки в одну позицию.
-              </p>
-            ) : null}
+            <p
+              className={`min-h-5 text-sm ${
+                hasDuplicateMdfNomenclature ||
+                (totalMdfPacks > 0 && totalMdfPacks !== MDF_PACKS_PER_VEHICLE)
+                  ? 'text-rose-600'
+                  : 'invisible'
+              }`}
+            >
+              {hasDuplicateMdfNomenclature
+                ? 'Одна и та же номенклатура выбрана несколько раз — объедините пачки в одну позицию.'
+                : `Нужно ровно ${MDF_PACKS_PER_VEHICLE} пачек на одну машину.`}
+            </p>
 
-            {totalMdfPacks > 0 && totalMdfPacks !== MDF_PACKS_PER_VEHICLE ? (
-              <p className="text-sm text-rose-600">
-                Нужно ровно {MDF_PACKS_PER_VEHICLE} пачек на одну машину.
+            <div>
+              <p className="mb-1 text-sm font-semibold text-slate-700">Количество машин</p>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={vehicleCount}
+                onChange={(event) => setVehicleCount(event.target.value)}
+                placeholder="Например, 3"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                На каждую машину будет создана отдельная одинаковая заявка
+                {hasValidVehicleCount ? ` (${parsedVehicleCount} шт.)` : ''}
               </p>
-            ) : null}
+            </div>
           </div>
         )}
 
@@ -516,7 +619,12 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
                       type="radio"
                       name="logistics"
                       checked={selectedLogistics === option.value}
-                      onChange={() => setSelectedLogistics(option.value)}
+                      onChange={() => {
+                        setSelectedLogistics(option.value)
+                        if (option.value !== 'pickup') {
+                          setPhoneTouched(false)
+                        }
+                      }}
                       className="h-4 w-4 border-slate-300 text-blue-600 focus:ring-blue-500"
                     />
                     {option.label}
@@ -526,6 +634,37 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
             </div>
 
             <div className="space-y-4">
+              {selectedLogistics === 'pickup' ? (
+                <div>
+                  <p className="mb-1 text-sm font-semibold text-slate-700">Контактный телефон</p>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={contactPhone}
+                    onChange={(event) =>
+                      setContactPhone(formatPhoneMask(event.target.value, contactPhone))
+                    }
+                    onBlur={() => setPhoneTouched(true)}
+                    placeholder="+7 (999) 123-45-67"
+                    className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400 ${
+                      phoneTouched && !isValidRussianPhone(contactPhone)
+                        ? 'border-rose-400'
+                        : 'border-slate-300'
+                    }`}
+                  />
+                  <p
+                    className={`mt-1 min-h-4 text-xs ${
+                      phoneTouched && !isValidRussianPhone(contactPhone)
+                        ? 'text-rose-600'
+                        : 'invisible'
+                    }`}
+                  >
+                    Введите номер в формате +7 (XXX) XXX-XX-XX
+                  </p>
+                </div>
+              ) : null}
+
               <div>
                 <p className="mb-1 text-sm font-semibold text-slate-700">Адрес доставки</p>
                 <input
@@ -557,7 +696,7 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
           </div>
         )}
 
-        {submitError ? <p className="mt-4 text-sm text-rose-600">{submitError}</p> : null}
+        <p className="mt-4 min-h-5 text-sm text-rose-600">{submitError || '\u00a0'}</p>
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
           <button

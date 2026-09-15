@@ -21,6 +21,8 @@ export type RequestRow = {
   legalEntity: string
   supplier: Supplier | string
   direction: string
+  /** Контактный телефон при самовывозе */
+  contactPhone?: string
   powerOfAttorney?: PowerOfAttorneyDetails
   vehicleInfo?: VehicleInfo
 }
@@ -35,6 +37,8 @@ export type CreateRequestPayload = {
   productType: 'mdf' | 'pogonazh'
   requestContract: string
   direction: string
+  logisticsType?: 'pickup' | 'delivery'
+  contactPhone?: string
   supplier?: Supplier | string
   /** Только для MDF: 1 заявка = 1 машина */
   vehicleCount?: number
