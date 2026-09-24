@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react'
+import { http } from '../../../api/http'
 
 type AuthUser = {
   fullName: string
@@ -14,29 +15,7 @@ type AuthContextValue = {
   logout: () => void
 }
 
-type DemoUserCredentials = {
-  password: string
-  fullName: string
-  company: string
-  legalEntities: string[]
-}
-
 const AUTH_STORAGE_KEY = 'pa-altailes-auth-user'
-
-const DEMO_USERS: Record<string, DemoUserCredentials> = {
-  demo: {
-    password: 'demo123',
-    fullName: 'Иванов И. И.',
-    company: 'ООО Альфа Логистик',
-    legalEntities: ['ООО Альфа Логистик'],
-  },
-  holding: {
-    password: 'holding123',
-    fullName: 'Сидоров С. С.',
-    company: 'ГК Алтайлес',
-    legalEntities: ['ООО Куршавель', 'ООО Под Пальмой', 'ООО Викинг'],
-  },
-}
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
@@ -75,24 +54,6 @@ const normalizeUser = (raw: unknown): AuthUser | null => {
   }
 }
 
-const hydrateDemoUser = (user: AuthUser): AuthUser => {
-  const demoProfile = DEMO_USERS[user.login]
-
-  if (!demoProfile) {
-    return {
-      ...user,
-      legalEntities: normalizeLegalEntities(user.legalEntities, user.company),
-    }
-  }
-
-  return {
-    login: user.login,
-    fullName: demoProfile.fullName,
-    company: demoProfile.company,
-    legalEntities: demoProfile.legalEntities,
-  }
-}
-
 const readStoredUser = (): AuthUser | null => {
   const raw = localStorage.getItem(AUTH_STORAGE_KEY)
 
@@ -101,13 +62,7 @@ const readStoredUser = (): AuthUser | null => {
   }
 
   try {
-    const normalized = normalizeUser(JSON.parse(raw))
-
-    if (!normalized) {
-      return null
-    }
-
-    return hydrateDemoUser(normalized)
+    return normalizeUser(JSON.parse(raw))
   } catch {
     return null
   }
@@ -121,23 +76,22 @@ export function AuthProvider({ children }: Props) {
   const [user, setUser] = useState<AuthUser | null>(() => readStoredUser())
 
   const login = async (loginValue: string, password: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 350))
+    try {
+      const { data } = await http.post('/api/auth/login', {
+        login: loginValue.trim(),
+        password,
+      })
 
-    const candidate = DEMO_USERS[loginValue]
+      const nextUser = normalizeUser(data)
+      if (!nextUser) {
+        throw new Error('Неверный ответ сервера')
+      }
 
-    if (!candidate || candidate.password !== password) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser))
+      setUser(nextUser)
+    } catch {
       throw new Error('Неверный логин или пароль')
     }
-
-    const nextUser: AuthUser = {
-      fullName: candidate.fullName,
-      company: candidate.company,
-      login: loginValue,
-      legalEntities: candidate.legalEntities,
-    }
-
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser))
-    setUser(nextUser)
   }
 
   const logout = () => {

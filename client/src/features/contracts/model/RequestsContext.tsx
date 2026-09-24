@@ -291,6 +291,7 @@ export function RequestsProvider({ children }: Props) {
             shipmentLines,
             direction: payload.direction,
             contactPhone: payload.contactPhone,
+            contactFullName: payload.contactFullName,
           }
 
           localRequests.push(localRequest)

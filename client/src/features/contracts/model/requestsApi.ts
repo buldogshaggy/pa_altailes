@@ -40,6 +40,7 @@ export const createRequestOnServer = async (payload: CreateRequestPayload): Prom
     direction: payload.direction,
     logisticsType: payload.logisticsType,
     contactPhone: payload.contactPhone,
+    contactFullName: payload.contactFullName,
     supplier: payload.supplier,
     productType: payload.productType,
     items: payload.items,

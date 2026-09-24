@@ -21,8 +21,10 @@ export type RequestRow = {
   legalEntity: string
   supplier: Supplier | string
   direction: string
-  /** Контактный телефон при самовывозе */
+  /** Контактный телефон при доставке */
   contactPhone?: string
+  /** ФИО контакта при доставке */
+  contactFullName?: string
   powerOfAttorney?: PowerOfAttorneyDetails
   vehicleInfo?: VehicleInfo
 }
@@ -39,6 +41,7 @@ export type CreateRequestPayload = {
   direction: string
   logisticsType?: 'pickup' | 'delivery'
   contactPhone?: string
+  contactFullName?: string
   supplier?: Supplier | string
   /** Только для MDF: 1 заявка = 1 машина */
   vehicleCount?: number

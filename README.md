@@ -1,12 +1,20 @@
-# Fullstack Starter: React + ASP.NET Core
+# Fullstack Starter: React + ASP.NET Core + PostgreSQL
 
 Этот репозиторий содержит:
 - Frontend: React + TypeScript + React Router + TanStack Query + Tailwind CSS + Axios
-- Backend: ASP.NET Core Web API (отдельное приложение)
+- Backend: ASP.NET Core Web API
+- Database: PostgreSQL (`site-data`)
 
 ## Структура
 - `client` - фронтенд
 - `server/Api` - бэкенд
+
+## База данных
+1. PostgreSQL 18+, база `site-data`
+2. Пользователь приложения: `pa_app` / `pa_app_pass` (можно сменить в `appsettings.Development.json`)
+3. При старте API применяет миграции и заливает демо-данные:
+   - пользователи `demo` / `demo123`, `holding` / `holding123`
+   - контракты и заявки
 
 ## Frontend
 1. Перейти в папку `client`
@@ -22,11 +30,10 @@
 3. Восстановить пакеты: `dotnet restore`
 4. Запустить: `dotnet run`
 
-Swagger будет доступен по адресу `http://localhost:5000/swagger`.
-
-Демо-данные хранятся в памяти API (и в локальном fallback на фронте, если API недоступен).
+Swagger: `http://localhost:5000/swagger`.
 
 ## Проверка связки
+- Запустить PostgreSQL
 - Запустить backend
 - Запустить frontend
-- Открыть frontend и убедиться, что на главной странице отображается ответ `/api/health`
+- Войти как `demo` / `demo123`

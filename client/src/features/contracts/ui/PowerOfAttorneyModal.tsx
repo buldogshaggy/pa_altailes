@@ -17,6 +17,7 @@ import type {
   RequestRow,
   UpdatePowerOfAttorneyPayload,
 } from '../model/types'
+import Select from '../../../components/ui/Select'
 
 type Props = {
   request: RequestRow | null
@@ -397,7 +398,7 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
             />
           </label>
 
-          <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
+          <label className="relative block text-sm font-semibold text-slate-700 md:col-span-2">
             Номер телефона водителя
             <input
               type="tel"
@@ -413,13 +414,11 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
                 showPhoneError ? 'border-rose-400' : 'border-slate-300'
               }`}
             />
-            <span
-              className={`mt-1 block min-h-4 text-xs font-normal ${
-                showPhoneError ? 'text-rose-600' : 'invisible'
-              }`}
-            >
-              Введите номер в формате +7 (XXX) XXX-XX-XX
-            </span>
+            {showPhoneError ? (
+              <span className="pointer-events-none absolute left-0 top-full z-10 mt-0.5 text-xs font-normal text-rose-600">
+                Введите номер в формате +7 (XXX) XXX-XX-XX
+              </span>
+            ) : null}
           </label>
 
           <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
@@ -448,18 +447,18 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
 
           <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
             Перевозчик
-            <select
+            <Select
               value={carrierId}
-              onChange={(event) => handleCarrierChange(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
-            >
-              <option value="">Выберите перевозчика или найдите по номеру ТС</option>
-              {MOCK_CARRIERS.map((carrier) => (
-                <option key={carrier.id} value={carrier.id}>
-                  {carrier.name}
-                </option>
-              ))}
-            </select>
+              onChange={handleCarrierChange}
+              className="mt-1 rounded-lg px-3 py-2"
+              options={[
+                { value: '', label: 'Выберите перевозчика или найдите по номеру ТС' },
+                ...MOCK_CARRIERS.map((carrier) => ({
+                  value: carrier.id,
+                  label: carrier.name,
+                })),
+              ]}
+            />
             <span className="mt-1 block text-xs font-normal text-slate-500">
               Можно не выбирать вручную: при вводе номера машины или прицепа перевозчик подставится сам
             </span>
@@ -553,7 +552,7 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
             </>
           ) : null}
 
-          <div className="md:col-span-2">
+          <div className="relative md:col-span-2">
             <label className="block text-sm font-semibold text-slate-700">
               Файл доверенности
               <input
@@ -583,13 +582,20 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
               </div>
             ) : null}
 
-            <p className="mt-2 min-h-5 text-sm text-rose-600">{attachmentError || '\u00a0'}</p>
+            {attachmentError ? (
+              <p className="pointer-events-none absolute left-0 top-full z-10 mt-0.5 text-sm text-rose-600">
+                {attachmentError}
+              </p>
+            ) : null}
           </div>
         </div>
 
-        <p className="mt-4 min-h-5 text-sm text-rose-600">{submitError || '\u00a0'}</p>
-
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="relative mt-6 flex justify-end gap-2">
+          {submitError ? (
+            <p className="pointer-events-none absolute inset-x-0 bottom-full z-10 mb-1 text-sm text-rose-600">
+              {submitError}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={onClose}

@@ -54,7 +54,7 @@ function TruckLoadScheme({ items, totalPacks }: Props) {
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border p-4 transition-colors ${
+      className={`overflow-hidden rounded-lg border p-2.5 transition-colors ${
         isComplete
           ? 'border-emerald-300 bg-gradient-to-br from-emerald-50 to-white'
           : isOverflow
@@ -62,15 +62,12 @@ function TruckLoadScheme({ items, totalPacks }: Props) {
             : 'border-slate-200 bg-gradient-to-br from-slate-50 to-white'
       }`}
     >
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-bold text-slate-800">Загрузка машины</p>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Каждая ячейка — 1 пачка · вместимость {MDF_PACKS_PER_VEHICLE}
-          </p>
-        </div>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-slate-700">
+          Загрузка машины · 1 ячейка = 1 пачка
+        </p>
         <p
-          className={`text-sm font-bold tabular-nums ${
+          className={`text-xs font-bold tabular-nums ${
             isComplete ? 'text-emerald-700' : isOverflow ? 'text-rose-600' : 'text-slate-700'
           }`}
         >
@@ -78,8 +75,8 @@ function TruckLoadScheme({ items, totalPacks }: Props) {
         </p>
       </div>
 
-      <div className="relative mx-auto w-full max-w-lg">
-        <svg viewBox="0 0 520 170" className="h-auto w-full" aria-hidden="true">
+      <div className="relative mx-auto w-full max-w-md">
+        <svg viewBox="0 0 520 170" className="h-auto max-h-[120px] w-full" aria-hidden="true">
           <defs>
             <linearGradient id="truck-body" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#334155" />
@@ -185,29 +182,27 @@ function TruckLoadScheme({ items, totalPacks }: Props) {
         </svg>
       </div>
 
-      <div className="mt-3">
-        <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ease-out ${
-              isComplete ? 'bg-emerald-500' : isOverflow ? 'bg-rose-500' : 'bg-blue-600'
-            }`}
-            style={{ width: `${fillPercent}%` }}
-          />
-        </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-200">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ease-out ${
+            isComplete ? 'bg-emerald-500' : isOverflow ? 'bg-rose-500' : 'bg-blue-600'
+          }`}
+          style={{ width: `${fillPercent}%` }}
+        />
       </div>
 
       {items.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-1.5 flex flex-wrap gap-1">
           {items.map((item, index) => {
             const color = PACK_COLORS[index % PACK_COLORS.length]
             return (
               <span
                 key={`${item.nomenclature}-${index}`}
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-semibold text-slate-700"
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-semibold text-slate-700"
                 style={{ backgroundColor: color.soft }}
               >
                 <span
-                  className="inline-block h-2.5 w-2.5 rounded-sm"
+                  className="inline-block h-2 w-2 rounded-sm"
                   style={{ backgroundColor: color.fill }}
                 />
                 {item.nomenclature}: {item.packCount}
@@ -216,8 +211,8 @@ function TruckLoadScheme({ items, totalPacks }: Props) {
           })}
         </div>
       ) : (
-        <p className="mt-3 text-center text-xs text-slate-500">
-          Добавьте позиции — пачки появятся в кузове
+        <p className="mt-1.5 text-center text-[11px] text-slate-500">
+          Заполните продукцию и пачки — они появятся в кузове
         </p>
       )}
     </div>

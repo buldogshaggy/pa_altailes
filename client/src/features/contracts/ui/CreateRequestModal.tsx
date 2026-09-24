@@ -14,6 +14,8 @@ import {
   type MdfSide,
 } from '../model/shipmentProducts'
 import TruckLoadScheme from './TruckLoadScheme'
+import Select from '../../../components/ui/Select'
+import DatePicker from '../../../components/ui/DatePicker'
 
 const productOptions = [
   { value: 'mdf', label: 'Плиты MDF' },
@@ -51,6 +53,15 @@ const createEmptyMdfLine = (): MdfLineDraft => ({
   packCount: '',
 })
 
+const isMdfLineProductComplete = (line: MdfLineDraft): boolean =>
+  Boolean(line.boardType && line.format && line.side && line.thicknessMm)
+
+const fieldInputClass =
+  'w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400'
+const fieldLabelClass = 'mb-0.5 block text-xs font-medium text-slate-500'
+const fieldErrorClass =
+  'pointer-events-none absolute left-0 top-full z-10 mt-0.5 text-[11px] leading-tight text-rose-600'
+
 type Props = {
   isOpen: boolean
   contracts: Contract[]
@@ -84,6 +95,7 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
   const [vehicleCount, setVehicleCount] = useState('1')
   const [selectedLogistics, setSelectedLogistics] = useState<LogisticsType | null>(null)
   const [contactPhone, setContactPhone] = useState('')
+  const [contactFullName, setContactFullName] = useState('')
   const [phoneTouched, setPhoneTouched] = useState(false)
   const [direction, setDirection] = useState('')
   const [shipmentDate, setShipmentDate] = useState('')
@@ -113,6 +125,7 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
     setVehicleCount('1')
     setSelectedLogistics(null)
     setContactPhone('')
+    setContactFullName('')
     setPhoneTouched(false)
     setDirection('')
     setShipmentDate('')
@@ -195,14 +208,15 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
         ? hasValidPogonazh
         : false
 
-  const hasValidPickupPhone =
-    selectedLogistics !== 'pickup' || isValidRussianPhone(contactPhone)
+  const hasValidDeliveryContact =
+    selectedLogistics !== 'delivery' ||
+    (isValidRussianPhone(contactPhone) && contactFullName.trim().length > 0)
 
   const canCreateRequest =
     (!hasMultipleLegalEntities || selectedRequestLegalEntity.trim().length > 0) &&
     selectedContractNumber.trim().length > 0 &&
     selectedLogistics !== null &&
-    hasValidPickupPhone &&
+    hasValidDeliveryContact &&
     direction.trim().length > 0 &&
     shipmentDate.length > 0
 
@@ -215,7 +229,18 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
 
   const updateMdfLine = (lineId: string, patch: Partial<Omit<MdfLineDraft, 'id'>>) => {
     setMdfLines((prevLines) =>
-      prevLines.map((line) => (line.id === lineId ? { ...line, ...patch } : line)),
+      prevLines.map((line) => {
+        if (line.id !== lineId) {
+          return line
+        }
+
+        const nextLine = { ...line, ...patch }
+        if (!isMdfLineProductComplete(nextLine)) {
+          nextLine.packCount = ''
+        }
+
+        return nextLine
+      }),
     )
   }
 
@@ -249,7 +274,8 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
         direction: direction.trim(),
         requestContract: selectedContractNumber,
         logisticsType: selectedLogistics ?? undefined,
-        contactPhone: selectedLogistics === 'pickup' ? contactPhone : undefined,
+        contactPhone: selectedLogistics === 'delivery' ? contactPhone : undefined,
+        contactFullName: selectedLogistics === 'delivery' ? contactFullName.trim() : undefined,
       }
 
       if (selectedProduct === 'mdf') {
@@ -279,204 +305,174 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto bg-white p-5 shadow-xl md:p-6">
-        <div className="mb-5 flex items-start justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-slate-800">Создать заявку</h3>
-            <p className="mt-1 text-sm text-slate-500">
-              Шаг {requestStep} из {totalSteps}: {stepLabels[requestStep - 1]}
-            </p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+        <div className="shrink-0 border-b border-slate-100 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-bold text-slate-800">Создать заявку</h3>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Шаг {requestStep} из {totalSteps}: {stepLabels[requestStep - 1]}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Закрыть модальное окно"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-300 text-lg leading-none text-slate-600 hover:bg-slate-50"
+            >
+              ×
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Закрыть модальное окно"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 text-xl leading-none text-slate-600 hover:bg-slate-50"
-          >
-            ×
-          </button>
+          <div className="mt-2.5 h-1.5 rounded-full bg-slate-100">
+            <div
+              className="h-1.5 rounded-full bg-blue-600 transition-all"
+              style={{ width: `${(requestStep / totalSteps) * 100}%` }}
+            />
+          </div>
         </div>
 
-        <div className="mb-5 h-2 rounded-full bg-slate-100">
-          <div
-            className="h-2 rounded-full bg-blue-600 transition-all"
-            style={{ width: `${(requestStep / totalSteps) * 100}%` }}
-          />
-        </div>
+        <div className="modal-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-3">
 
         {requestStep === legalEntityStep && hasMultipleLegalEntities && (
           <div>
-            <p className="mb-3 text-sm font-semibold text-slate-700">1 шаг - Выбор юридического лица</p>
-            <select
+            <p className={fieldLabelClass}>Юридическое лицо</p>
+            <Select
               value={selectedRequestLegalEntity}
-              onChange={(event) => {
-                setSelectedRequestLegalEntity(event.target.value)
+              onChange={(nextValue) => {
+                setSelectedRequestLegalEntity(nextValue)
                 setSelectedContractNumber('')
               }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
-            >
-              <option value="">Выберите юридическое лицо</option>
-              {legalEntities.map((entity) => (
-                <option key={entity} value={entity}>
-                  {entity}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: '', label: 'Выберите юридическое лицо' },
+                ...legalEntities.map((entity) => ({ value: entity, label: entity })),
+              ]}
+            />
           </div>
         )}
 
         {requestStep === productStep && (
-          <div>
-            <p className="mb-3 text-sm font-semibold text-slate-700">
-              {productStep} шаг - Выбор продукции
-            </p>
-            <div className="flex flex-col gap-2">
-              {productOptions.map((product) => (
-                <button
-                  key={product.value}
-                  type="button"
-                  onClick={() => handleProductSelect(product.value)}
-                  className={`w-full rounded-xl border px-4 py-3 text-left text-sm font-semibold ${
-                    selectedProduct === product.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  {product.label}
-                </button>
-              ))}
-            </div>
+          <div className="flex gap-2">
+            {productOptions.map((product) => (
+              <button
+                key={product.value}
+                type="button"
+                onClick={() => handleProductSelect(product.value)}
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold ${
+                  selectedProduct === product.value
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                {product.label}
+              </button>
+            ))}
           </div>
         )}
 
         {requestStep === nomenclatureStep && selectedProduct === 'mdf' && (
-          <div className="space-y-4">
-            <div>
-              <p className="mb-1 text-sm font-semibold text-slate-700">
-                {nomenclatureStep} шаг - Состав заявки (1 машина = {MDF_PACKS_PER_VEHICLE} пачек)
-              </p>
-              <p className="text-xs text-slate-500">
-                В одной заявке должно быть ровно {MDF_PACKS_PER_VEHICLE} пачек. Можно добавить
-                несколько позиций номенклатуры.
-              </p>
-            </div>
+          <div className="space-y-3">
+            <p className="text-xs text-slate-500">
+              1 машина = {MDF_PACKS_PER_VEHICLE} пачек. Можно добавить несколько позиций.
+            </p>
 
-            <TruckLoadScheme items={mdfItems} totalPacks={totalMdfPacks} />
-
-            <div className="space-y-3">
+            <div className="space-y-2">
               {mdfLines.map((line, index) => {
                 const formatOptions = line.boardType ? MDF_FORMATS_BY_TYPE[line.boardType] : []
+                const canEditPackCount = isMdfLineProductComplete(line)
 
                 return (
                   <div
                     key={line.id}
-                    className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3"
+                    className="space-y-2 rounded-lg border border-slate-200 bg-slate-50/80 p-2.5"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Позиция {index + 1}
-                      </p>
+                      <p className="text-xs font-semibold text-slate-500">Позиция {index + 1}</p>
                       <button
                         type="button"
                         onClick={() => removeMdfLine(line.id)}
                         disabled={mdfLines.length <= 1}
-                        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         Удалить
                       </button>
                     </div>
 
-                    <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-2 md:grid-cols-2">
                       <div className="md:col-span-2">
-                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Вид плиты
-                        </p>
-                        <select
+                        <p className={fieldLabelClass}>Вид плиты</p>
+                        <Select
                           value={line.boardType}
-                          onChange={(event) =>
+                          onChange={(nextValue) =>
                             updateMdfLine(line.id, {
-                              boardType: event.target.value as MdfBoardType | '',
+                              boardType: nextValue as MdfBoardType | '',
                               format: '',
                             })
                           }
-                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
-                        >
-                          <option value="">Выберите вид плиты</option>
-                          {MDF_BOARD_TYPES.map((type) => (
-                            <option key={type.value} value={type.value}>
-                              {type.label}
-                            </option>
-                          ))}
-                        </select>
+                          options={[
+                            { value: '', label: 'Выберите вид плиты' },
+                            ...MDF_BOARD_TYPES.map((type) => ({
+                              value: type.value,
+                              label: type.label,
+                            })),
+                          ]}
+                        />
                       </div>
 
                       <div>
-                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Формат плиты, мм
-                        </p>
-                        <select
+                        <p className={fieldLabelClass}>Формат, мм</p>
+                        <Select
                           value={line.format}
-                          onChange={(event) => updateMdfLine(line.id, { format: event.target.value })}
+                          onChange={(nextValue) => updateMdfLine(line.id, { format: nextValue })}
                           disabled={!line.boardType}
-                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
-                        >
-                          <option value="">
-                            {line.boardType ? 'Выберите формат' : 'Сначала выберите вид плиты'}
-                          </option>
-                          {formatOptions.map((format) => (
-                            <option key={format} value={format}>
-                              {format}
-                            </option>
-                          ))}
-                        </select>
+                          options={[
+                            {
+                              value: '',
+                              label: line.boardType ? 'Выберите формат' : 'Сначала вид плиты',
+                            },
+                            ...formatOptions.map((format) => ({ value: format, label: format })),
+                          ]}
+                        />
                       </div>
 
                       <div>
-                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Стороны
-                        </p>
-                        <select
+                        <p className={fieldLabelClass}>Стороны</p>
+                        <Select
                           value={line.side}
-                          onChange={(event) =>
-                            updateMdfLine(line.id, { side: event.target.value as MdfSide | '' })
+                          onChange={(nextValue) =>
+                            updateMdfLine(line.id, { side: nextValue as MdfSide | '' })
                           }
-                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
-                        >
-                          <option value="">Односторонняя или двухсторонняя</option>
-                          {MDF_SIDES.map((side) => (
-                            <option key={side.value} value={side.value}>
-                              {side.label}
-                            </option>
-                          ))}
-                        </select>
+                          options={[
+                            { value: '', label: 'Односторонняя / двухсторонняя' },
+                            ...MDF_SIDES.map((side) => ({
+                              value: side.value,
+                              label: side.label,
+                            })),
+                          ]}
+                        />
                       </div>
 
                       <div>
-                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Толщина плиты
-                        </p>
-                        <select
+                        <p className={fieldLabelClass}>Толщина</p>
+                        <Select
                           value={line.thicknessMm}
-                          onChange={(event) =>
-                            updateMdfLine(line.id, { thicknessMm: event.target.value })
+                          onChange={(nextValue) =>
+                            updateMdfLine(line.id, { thicknessMm: nextValue })
                           }
-                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
-                        >
-                          <option value="">Выберите толщину</option>
-                          {MDF_THICKNESSES_MM.map((thickness) => (
-                            <option key={thickness} value={String(thickness)}>
-                              {thickness} мм
-                            </option>
-                          ))}
-                        </select>
+                          options={[
+                            { value: '', label: 'Выберите толщину' },
+                            ...MDF_THICKNESSES_MM.map((thickness) => ({
+                              value: String(thickness),
+                              label: `${thickness} мм`,
+                            })),
+                          ]}
+                        />
                       </div>
 
                       <div>
-                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Количество пакетов
-                        </p>
+                        <p className={fieldLabelClass}>Пачек</p>
                         <input
                           type="number"
                           min="1"
@@ -485,8 +481,9 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
                           onChange={(event) =>
                             updateMdfLine(line.id, { packCount: event.target.value })
                           }
-                          placeholder="0"
-                          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
+                          disabled={!canEditPackCount}
+                          placeholder={canEditPackCount ? '0' : 'Сначала продукция'}
+                          className={fieldInputClass}
                         />
                       </div>
                     </div>
@@ -495,74 +492,66 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
               })}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={addMdfLine}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                + Добавить позицию
-              </button>
+            <div className="relative">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={addMdfLine}
+                  className="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  + Позиция
+                </button>
 
-              <p className={`text-sm font-semibold ${packsHintClass}`}>
-                Заполнено: {totalMdfPacks} / {MDF_PACKS_PER_VEHICLE} пачек
-              </p>
+                <p className={`ml-auto text-xs font-semibold ${packsHintClass}`}>
+                  {totalMdfPacks}/{MDF_PACKS_PER_VEHICLE} пачек
+                </p>
+              </div>
+
+              {hasDuplicateMdfNomenclature ||
+              (totalMdfPacks > 0 && totalMdfPacks !== MDF_PACKS_PER_VEHICLE) ? (
+                <p className={fieldErrorClass}>
+                  {hasDuplicateMdfNomenclature
+                    ? 'Одна и та же номенклатура выбрана несколько раз — объедините пачки в одну позицию.'
+                    : `Нужно ровно ${MDF_PACKS_PER_VEHICLE} пачек на одну машину.`}
+                </p>
+              ) : null}
             </div>
 
-            <p
-              className={`min-h-5 text-sm ${
-                hasDuplicateMdfNomenclature ||
-                (totalMdfPacks > 0 && totalMdfPacks !== MDF_PACKS_PER_VEHICLE)
-                  ? 'text-rose-600'
-                  : 'invisible'
-              }`}
-            >
-              {hasDuplicateMdfNomenclature
-                ? 'Одна и та же номенклатура выбрана несколько раз — объедините пачки в одну позицию.'
-                : `Нужно ровно ${MDF_PACKS_PER_VEHICLE} пачек на одну машину.`}
-            </p>
+            <TruckLoadScheme items={mdfItems} totalPacks={totalMdfPacks} />
 
-            <div>
-              <p className="mb-1 text-sm font-semibold text-slate-700">Количество машин</p>
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+              Количество машин
               <input
                 type="number"
                 min="1"
                 step="1"
                 value={vehicleCount}
                 onChange={(event) => setVehicleCount(event.target.value)}
-                placeholder="Например, 3"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
+                className="w-20 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-700 outline-none focus:border-blue-400"
               />
-              <p className="mt-1 text-xs text-slate-500">
-                На каждую машину будет создана отдельная одинаковая заявка
-                {hasValidVehicleCount ? ` (${parsedVehicleCount} шт.)` : ''}
-              </p>
-            </div>
+              <span className="text-slate-400">
+                {hasValidVehicleCount ? 'по одной заявке на машину' : ''}
+              </span>
+            </label>
           </div>
         )}
 
         {requestStep === nomenclatureStep && selectedProduct === 'pogonazh' && (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <p className="mb-1 text-sm font-semibold text-slate-700">
-                {nomenclatureStep} шаг - Выбор продукции для отгрузки
-              </p>
-              <select
+              <p className={fieldLabelClass}>Продукция для отгрузки</p>
+              <Select
                 value={selectedNomenclature}
-                onChange={(event) => setSelectedNomenclature(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
-              >
-                <option value="">Выберите продукцию</option>
-                {availableNomenclature.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedNomenclature}
+                options={[
+                  { value: '', label: 'Выберите продукцию' },
+                  ...availableNomenclature.map((item) => ({ value: item, label: item })),
+                ]}
+              />
             </div>
 
             <div>
-              <p className="mb-1 text-sm font-semibold text-slate-700">Объем</p>
+              <p className={fieldLabelClass}>Объем</p>
               <input
                 type="number"
                 min="0"
@@ -570,7 +559,7 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
                 value={volume}
                 onChange={(event) => setVolume(event.target.value)}
                 placeholder="Введите объем"
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
+                className={fieldInputClass}
               />
             </div>
           </div>
@@ -579,41 +568,41 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
         {requestStep === logisticsStep && (
           <div className="grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
-              <p className="mb-1 text-sm font-semibold text-slate-700">Договор</p>
+              <p className={fieldLabelClass}>Договор</p>
               {hasMultipleLegalEntities && activeLegalEntity ? (
-                <p className="mb-2 text-xs text-slate-500">
-                  Договоры для {activeLegalEntity}
-                </p>
+                <p className="mb-1 text-[11px] text-slate-500">Договоры для {activeLegalEntity}</p>
               ) : null}
-              <select
+              <Select
                 value={selectedContractNumber}
-                onChange={(event) => setSelectedContractNumber(event.target.value)}
+                onChange={setSelectedContractNumber}
                 disabled={availableContracts.length === 0}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
-              >
-                <option value="">
-                  {availableContracts.length === 0
-                    ? 'Нет доступных договоров'
-                    : 'Выберите договор'}
-                </option>
-                {availableContracts.map((contract) => (
-                  <option key={contract.id} value={contract.id}>
-                    {contract.id} · {contract.contractDate} · {contract.factualBalance}{' '}
-                    {contract.contractCurrency}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  {
+                    value: '',
+                    label:
+                      availableContracts.length === 0
+                        ? 'Нет доступных договоров'
+                        : 'Выберите договор',
+                  },
+                  ...availableContracts.map((contract) => ({
+                    value: contract.id,
+                    label: `${contract.id} · ${contract.contractDate} · ${contract.factualBalance} ${contract.contractCurrency}`,
+                  })),
+                ]}
+              />
             </div>
 
-            <div>
-              <p className="mb-2 text-sm font-semibold text-slate-700">
-                {logisticsStep} шаг - Выбор логистики
-              </p>
-              <div className="flex flex-col gap-2">
+            <div className="md:col-span-2">
+              <p className={fieldLabelClass}>Логистика</p>
+              <div className="flex gap-4">
                 {logisticsOptions.map((option) => (
                   <label
                     key={option.value}
-                    className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+                    className={`inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-1.5 text-sm ${
+                      selectedLogistics === option.value
+                        ? 'border-blue-500 bg-blue-50 font-semibold text-blue-700'
+                        : 'border-slate-300 bg-white text-slate-700'
+                    }`}
                   >
                     <input
                       type="radio"
@@ -621,8 +610,10 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
                       checked={selectedLogistics === option.value}
                       onChange={() => {
                         setSelectedLogistics(option.value)
-                        if (option.value !== 'pickup') {
-                          setPhoneTouched(false)
+                        setPhoneTouched(false)
+                        if (option.value !== 'delivery') {
+                          setContactPhone('')
+                          setContactFullName('')
                         }
                       }}
                       className="h-4 w-4 border-slate-300 text-blue-600 focus:ring-blue-500"
@@ -633,10 +624,22 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
               </div>
             </div>
 
-            <div className="space-y-4">
-              {selectedLogistics === 'pickup' ? (
+            {selectedLogistics === 'delivery' ? (
+              <>
                 <div>
-                  <p className="mb-1 text-sm font-semibold text-slate-700">Контактный телефон</p>
+                  <p className={fieldLabelClass}>ФИО контакта</p>
+                  <input
+                    type="text"
+                    autoComplete="name"
+                    value={contactFullName}
+                    onChange={(event) => setContactFullName(event.target.value)}
+                    placeholder="Иванов Иван Иванович"
+                    className={fieldInputClass}
+                  />
+                </div>
+
+                <div className="relative">
+                  <p className={fieldLabelClass}>Контактный телефон</p>
                   <input
                     type="tel"
                     inputMode="tel"
@@ -647,93 +650,91 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
                     }
                     onBlur={() => setPhoneTouched(true)}
                     placeholder="+7 (999) 123-45-67"
-                    className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400 ${
-                      phoneTouched && !isValidRussianPhone(contactPhone)
-                        ? 'border-rose-400'
-                        : 'border-slate-300'
+                    className={`${fieldInputClass} ${
+                      phoneTouched && !isValidRussianPhone(contactPhone) ? 'border-rose-400' : ''
                     }`}
                   />
-                  <p
-                    className={`mt-1 min-h-4 text-xs ${
-                      phoneTouched && !isValidRussianPhone(contactPhone)
-                        ? 'text-rose-600'
-                        : 'invisible'
-                    }`}
-                  >
-                    Введите номер в формате +7 (XXX) XXX-XX-XX
-                  </p>
+                  {phoneTouched && !isValidRussianPhone(contactPhone) ? (
+                    <p className={fieldErrorClass}>Формат: +7 (XXX) XXX-XX-XX</p>
+                  ) : null}
                 </div>
-              ) : null}
+              </>
+            ) : null}
 
-              <div>
-                <p className="mb-1 text-sm font-semibold text-slate-700">Адрес доставки</p>
-                <input
-                  type="text"
-                  value={direction}
-                  onChange={(event) => setDirection(event.target.value)}
-                  placeholder="Например, Екатеринбург"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
-                />
-              </div>
+            <div>
+              <p className={fieldLabelClass}>Адрес доставки</p>
+              <input
+                type="text"
+                value={direction}
+                onChange={(event) => setDirection(event.target.value)}
+                placeholder="Например, Екатеринбург"
+                className={fieldInputClass}
+              />
+            </div>
 
-              <div>
-                <p className="mb-1 text-sm font-semibold text-slate-700">Желаемая дата отгрузки</p>
-                <input
-                  type="date"
-                  value={shipmentDate}
-                  onChange={(event) => setShipmentDate(event.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-400"
-                />
-              </div>
+            <div>
+              <p className={fieldLabelClass}>Желаемая дата отгрузки</p>
+              <DatePicker
+                value={shipmentDate}
+                onChange={setShipmentDate}
+                placeholder="Выберите дату"
+              />
             </div>
 
             {selectedProduct === 'mdf' && hasValidVehicleCount && parsedVehicleCount > 1 ? (
-              <p className="md:col-span-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+              <p className="md:col-span-2 rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1.5 text-xs text-blue-800">
                 Будет создано {parsedVehicleCount} одинаковых заявки по {MDF_PACKS_PER_VEHICLE} пачек
                 (по одной на машину).
               </p>
             ) : null}
           </div>
         )}
+        </div>
 
-        <p className="mt-4 min-h-5 text-sm text-rose-600">{submitError || '\u00a0'}</p>
+        <div className="relative shrink-0 border-t border-slate-100 px-4 py-3">
+          {submitError ? (
+            <p className="pointer-events-none absolute inset-x-4 bottom-full z-10 mb-1 text-xs text-rose-600">
+              {submitError}
+            </p>
+          ) : null}
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => setRequestStep((prevStep) => Math.max(prevStep - 1, 1))}
-            disabled={requestStep === 1 || isSubmitting}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Назад
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setRequestStep((prevStep) => Math.max(prevStep - 1, 1))}
+              disabled={requestStep === 1 || isSubmitting}
+              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Назад
+            </button>
 
-          <div className="flex gap-2">
-            {requestStep < totalSteps && (
-              <button
-                type="button"
-                onClick={() => setRequestStep((prevStep) => prevStep + 1)}
-                disabled={!canGoNext}
-                className="rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Далее
-              </button>
-            )}
+            <div className="flex gap-2">
+              {requestStep < totalSteps && (
+                <button
+                  type="button"
+                  onClick={() => setRequestStep((prevStep) => prevStep + 1)}
+                  disabled={!canGoNext}
+                  className="rounded-md border border-blue-600 bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Далее
+                </button>
+              )}
 
-            {requestStep === totalSteps && (
-              <button
-                type="button"
-                onClick={submitCreateRequest}
-                disabled={!canCreateRequest || isSubmitting}
-                className="rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSubmitting
-                  ? 'Создание...'
-                  : selectedProduct === 'mdf' && hasValidVehicleCount && parsedVehicleCount > 1
-                    ? `Создать ${parsedVehicleCount} заявки`
-                    : 'Создать'}
-              </button>
-            )}
+              {requestStep === totalSteps && (
+                <button
+                  type="button"
+                  onClick={submitCreateRequest}
+                  disabled={!canCreateRequest || isSubmitting}
+                  className="rounded-md border border-blue-600 bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSubmitting
+                    ? 'Создание...'
+                    : selectedProduct === 'mdf' && hasValidVehicleCount && parsedVehicleCount > 1
+                      ? `Создать ${parsedVehicleCount} заявки`
+                      : 'Создать'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -742,3 +743,4 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
 }
 
 export default CreateRequestModal
+
