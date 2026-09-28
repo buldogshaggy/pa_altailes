@@ -270,9 +270,14 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
     setIsSubmitting(true)
 
     try {
+      const selectedContract = availableContracts.find(
+        (contract) => contract.id === selectedContractNumber,
+      )
+
       const logisticsFields = {
         direction: direction.trim(),
         requestContract: selectedContractNumber,
+        supplier: selectedContract?.supplier,
         logisticsType: selectedLogistics ?? undefined,
         contactPhone: selectedLogistics === 'delivery' ? contactPhone : undefined,
         contactFullName: selectedLogistics === 'delivery' ? contactFullName.trim() : undefined,
@@ -586,7 +591,7 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
                   },
                   ...availableContracts.map((contract) => ({
                     value: contract.id,
-                    label: `${contract.id} · ${contract.contractDate} · ${contract.factualBalance} ${contract.contractCurrency}`,
+                    label: `${contract.id} · ${contract.supplier} · ${contract.contractDate} · ${contract.factualBalance} ${contract.contractCurrency}`,
                   })),
                 ]}
               />

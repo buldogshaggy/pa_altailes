@@ -6,6 +6,7 @@ import { ALL_REQUEST_STATUSES } from '../features/contracts/model/requestStatuse
 import { PRODUCT_KINDS } from '../features/contracts/model/shipmentProducts'
 import { getShipmentLines, requestMatchesProductKind } from '../features/contracts/model/shipmentLines'
 import type { RequestRow } from '../features/contracts/model/types'
+import { SUPPLIERS, type Supplier } from '../features/contracts/model/suppliers'
 import Select from '../components/ui/Select'
 import DatePicker from '../components/ui/DatePicker'
 
@@ -36,6 +37,7 @@ function RequestsPage() {
   const [selectedProductKind, setSelectedProductKind] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
+  const [selectedSupplierTab, setSelectedSupplierTab] = useState<Supplier>(SUPPLIERS[0])
   const [powerOfAttorneyRequest, setPowerOfAttorneyRequest] = useState<RequestRow | null>(null)
   const filtersButtonRef = useRef<HTMLButtonElement>(null)
   const filtersPanelRef = useRef<HTMLDivElement>(null)
@@ -72,6 +74,8 @@ function RequestsPage() {
     const selectedDateValue = selectedDate ? parseIsoDate(selectedDate) : null
 
     return requests.filter((request) => {
+      const matchesSupplier = request.supplier === selectedSupplierTab
+
       const matchesProductKind =
         selectedProductKind === 'all' || requestMatchesProductKind(request, selectedProductKind)
 
@@ -92,17 +96,37 @@ function RequestsPage() {
             )
           })()
 
-      return matchesDate && matchesProductKind && matchesStatus
+      return matchesSupplier && matchesDate && matchesProductKind && matchesStatus
     })
-  }, [requests, selectedDate, selectedProductKind, selectedStatus])
+  }, [requests, selectedSupplierTab, selectedDate, selectedProductKind, selectedStatus])
 
   const selectedRequest = useMemo(
     () => filteredRequests.find((request) => request.id === selectedRequestId) ?? null,
     [filteredRequests, selectedRequestId],
   )
 
+  const requestCountsBySupplier = useMemo(() => {
+    const counts = Object.fromEntries(SUPPLIERS.map((supplier) => [supplier, 0])) as Record<
+      Supplier,
+      number
+    >
+
+    for (const request of requests) {
+      if (request.supplier in counts) {
+        counts[request.supplier as Supplier] += 1
+      }
+    }
+
+    return counts
+  }, [requests])
+
   const handleOpenRequest = (request: RequestRow) => {
     setSelectedRequestId((currentId) => (currentId === request.id ? null : request.id))
+  }
+
+  const handleSupplierTabChange = (supplier: Supplier) => {
+    setSelectedSupplierTab(supplier)
+    setSelectedRequestId(null)
   }
 
   useEffect(() => {
@@ -241,13 +265,44 @@ function RequestsPage() {
 
         {error ? <p className="mb-3 shrink-0 text-sm text-rose-600">{error}</p> : null}
 
-        <div className="min-h-0 flex-1 overflow-auto">
-          <RequestsDataTable
-            requests={filteredRequests}
-            selectedRequestId={selectedRequestId}
-            onOpenRequest={handleOpenRequest}
-            onOpenPowerOfAttorney={openPowerOfAttorney}
-          />
+        <div className="mb-0 flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex shrink-0 items-end gap-1 overflow-x-auto overflow-y-hidden border-b border-slate-200">
+            {SUPPLIERS.map((supplier) => {
+              const isActive = selectedSupplierTab === supplier
+              const count = requestCountsBySupplier[supplier]
+
+              return (
+                <button
+                  key={supplier}
+                  type="button"
+                  onClick={() => handleSupplierTabChange(supplier)}
+                  className={`relative -mb-px shrink-0 rounded-t-lg border px-3 py-2 text-sm font-semibold leading-5 transition-colors ${
+                    isActive
+                      ? 'border-slate-200 border-b-white bg-white text-blue-700'
+                      : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+                  }`}
+                >
+                  <span className="whitespace-nowrap">{supplier}</span>
+                  <span
+                    className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-xs ${
+                      isActive ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto rounded-b-lg border border-t-0 border-slate-200">
+            <RequestsDataTable
+              requests={filteredRequests}
+              selectedRequestId={selectedRequestId}
+              onOpenRequest={handleOpenRequest}
+              onOpenPowerOfAttorney={openPowerOfAttorney}
+            />
+          </div>
         </div>
       </section>
 

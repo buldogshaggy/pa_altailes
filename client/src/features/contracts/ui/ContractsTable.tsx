@@ -13,16 +13,20 @@ function ContractsDataTable({ contracts }: { contracts: Contract[] }) {
     <div className="overflow-x-auto">
       <table className="min-w-full table-fixed border-separate border-spacing-0 text-sm">
         <colgroup>
-          <col className="w-[25%]" />
+          <col className="w-[16%]" />
           <col className="w-[18%]" />
-          <col className="w-[25%]" />
-          <col className="w-[17%]" />
-          <col className="w-[30%]" />
+          <col className="w-[14%]" />
+          <col className="w-[16%]" />
+          <col className="w-[10%]" />
+          <col className="w-[26%]" />
         </colgroup>
         <thead>
           <tr>
             <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
               Наименование
+            </th>
+            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
+              Поставщик
             </th>
             <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
               Срок действия
@@ -46,6 +50,9 @@ function ContractsDataTable({ contracts }: { contracts: Contract[] }) {
                 {contract.id}
               </td>
               <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-slate-700">
+                {contract.supplier}
+              </td>
+              <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-slate-700">
                 {contract.contractDate}
               </td>
               <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-slate-700">
@@ -62,7 +69,7 @@ function ContractsDataTable({ contracts }: { contracts: Contract[] }) {
 
           {contracts.length === 0 && (
             <tr>
-              <td className="px-3 py-6 text-center text-sm text-slate-500" colSpan={5}>
+              <td className="px-3 py-6 text-center text-sm text-slate-500" colSpan={6}>
                 По выбранным фильтрам контрактов не найдено
               </td>
             </tr>

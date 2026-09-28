@@ -51,6 +51,45 @@ using (var scope = app.Services.CreateScope())
     await SeedData.InitializeAsync(db);
 }
 
+var requests = new List<RequestDto>
+{
+    new("З-2026-0001", "15.07.2026", "Выполнен", "К-2024-0001", "ООО Альфа Логистик", "Павловский ДОК", "Плита MDF", "Екатеринбург", null, null, new List<ShipmentLineDto>
+    {
+        new(1, "Павловский ДОК", "MDF 16 мм, 2800х2070х16", "120", "120", "4 850,00", "582 000,00"),
+        new(2, "Павловский ДОК", "MDF 22 мм, 2800х2070х22", "80", "80", "5 200,00", "416 000,00")
+    }),
+    new("З-2026-0002", "18.08.2026", "Согласована с менеджером", "К-2026-0002", "ООО Под Пальмой", "Павловский ДОК", "Плита MDF", "Тюмень"),
+    new("З-2026-0003", "17.08.2026", "На согласовании", "К-2025-0002", "ООО Куршавель", "ООО Содружество", "Погонаж", "Таджикистан"),
+    new("З-2026-0004", "16.08.2026", "В работе", "К-2026-0001", "ООО Под Пальмой", "ООО Новичиха Лес", "Погонаж", "Екатеринбург"),
+    new("З-2026-0005", "10.08.2026", "Доверенность заполнена", "К-2024-0001", "ООО Альфа Логистик", "Павловский ДОК", "Плита MDF", "Челябинск",
+        new PowerOfAttorneyDto(
+            "Петров Пётр Петрович",
+            "+7 (901) 234-56-78",
+            "Челябинск",
+            "carrier-trans-ural",
+            "ООО «Транс-Урал»",
+            null,
+            new PowerOfAttorneyAttachmentDto("доверенность-з-2026-0005.pdf", "application/pdf", 245760, null)),
+        new VehicleInfoDto("tractor-tu-1", "trailer-tu-1", "А123ВС174", "АВ1234 74", "Volvo FH16", "Schmitz Cargobull"),
+        new List<ShipmentLineDto>
+        {
+            new(1, "Павловский ДОК", "MDF 16 мм, 2800х2070х16", "95", "95", "4 850,00", "460 750,00"),
+            new(2, "Павловский ДОК", "MDF 22 мм, 2800х2070х22", "60", "48", "5 200,00", "249 600,00")
+        }),
+    new("З-2026-0006", "05.08.2026", "Отменена", "К-2025-0002", "ООО Куршавель", "ООО Содружество", "Погонаж", "Москва"),
+    new("З-2026-0007", "12.08.2026", "В работе", "К-2024-0001", "ООО Альфа Логистик", "Павловский ДОК", "Плита MDF", "Сочи"),
+    new("З-2026-0008", "14.08.2026", "Согласована с менеджером", "К-2026-0002", "ООО Под Пальмой", "Павловский ДОК", "Плита MDF", "Краснодар"),
+    new("З-2026-0009", "11.08.2026", "На согласовании", "К-2026-0001", "ООО Под Пальмой", "ООО Новичиха Лес", "Погонаж", "Анапа"),
+    new("З-2026-0010", "09.08.2026", "Выполнен", "К-2027-0001", "ООО Викинг", "Рубцовский ЛДК", "Пиломатериалы", "Мурманск", null, null, new List<ShipmentLineDto>
+    {
+        new(1, "Рубцовский ЛДК", "Доска обрезная 50х150х6000, 1 сорт", "120", "0", "18 500,00", "2 220 000,00")
+    }),
+    new("З-2026-0011", "20.08.2026", "Согласована с менеджером", "К-2025-0001", "ООО Куршавель", "Каменский ЛДК", "Пиломатериалы", "Таджикистан", null, null, new List<ShipmentLineDto>
+    {
+        new(1, "Каменский ЛДК", "Доска обрезная 50х150х6000, 1 сорт", "120", "0", "18 500,00", "2 220 000,00")
+    })
+};
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -115,6 +154,7 @@ app.MapGet("/api/contracts", async (string? legalEntity, string? legalEntities, 
         .Select(contract => new ContractDto(
             contract.Id,
             contract.LegalEntity,
+            contract.Supplier,
             contract.ContractDate,
             contract.FactualBalance,
             contract.ContractCurrency))
@@ -123,29 +163,18 @@ app.MapGet("/api/contracts", async (string? legalEntity, string? legalEntities, 
     return Results.Ok(new { contracts });
 });
 
-app.MapGet("/api/requests", async (string? legalEntity, string? legalEntities, AppDbContext db) =>
+app.MapGet("/api/requests", (string? legalEntity, string? legalEntities) =>
 {
     var allowedEntities = ParseLegalEntities(legalEntity, legalEntities);
 
-    var query = db.Requests
-        .AsNoTracking()
-        .Include(request => request.ShipmentLines)
-        .AsQueryable();
+    var filtered = allowedEntities.Count == 0
+        ? requests
+        : requests.Where(request => allowedEntities.Contains(request.LegalEntity)).ToList();
 
-    if (allowedEntities.Count > 0)
-    {
-        query = query.Where(request => allowedEntities.Contains(request.LegalEntity));
-    }
-
-    var requests = await query
-        .OrderByDescending(request => request.Id)
-        .ToListAsync();
-
-    var payload = requests.Select(MapRequestDto).ToList();
-    return Results.Ok(new { requests = payload });
+    return Results.Ok(new { requests = filtered });
 });
 
-app.MapPost("/api/requests", async (CreateRequestDto payload, AppDbContext db) =>
+app.MapPost("/api/requests", (CreateRequestDto payload) =>
 {
     if (string.IsNullOrWhiteSpace(payload.LegalEntity) ||
         string.IsNullOrWhiteSpace(payload.Nomenclature) ||
@@ -157,56 +186,49 @@ app.MapPost("/api/requests", async (CreateRequestDto payload, AppDbContext db) =
 
     var now = DateTime.Now;
     var supplier = string.IsNullOrWhiteSpace(payload.Supplier)
-        ? "Рубцовский ЛДК"
+        ? "Павловский ДОК"
         : payload.Supplier.Trim();
 
-    var requestId = await GetNextRequestIdAsync(db, now);
-
-    var newRequest = new Request
-    {
-        Id = requestId,
-        RequestDate = now.ToString("dd.MM.yyyy"),
-        RequestStatus = "Новый",
-        RequestContract = payload.RequestContract.Trim(),
-        LegalEntity = payload.LegalEntity.Trim(),
-        Supplier = supplier,
-        Nomenclature = payload.Nomenclature.Trim(),
-        Direction = payload.Direction.Trim(),
-        ContactPhone = string.IsNullOrWhiteSpace(payload.ContactPhone) ? null : payload.ContactPhone.Trim(),
-        LogisticsType = string.IsNullOrWhiteSpace(payload.LogisticsType) ? null : payload.LogisticsType.Trim(),
-        PowerOfAttorney = MapPowerOfAttorney(payload.PowerOfAttorney),
-        VehicleInfo = MapVehicleInfo(payload.VehicleInfo),
-    };
-
+    List<ShipmentLineDto>? shipmentLines = null;
     if (payload.Items is { Count: > 0 })
     {
-        newRequest.ShipmentLines = payload.Items
-            .Select((item, index) => new ShipmentLine
-            {
-                LineNumber = index + 1,
-                Warehouse = supplier,
-                Nomenclature = item.Nomenclature.Trim(),
-                Quantity = item.PackCount.ToString(),
-                Shipped = "0",
-                Price = "—",
-                Amount = "—",
-            })
+        shipmentLines = payload.Items
+            .Select((item, index) => new ShipmentLineDto(
+                index + 1,
+                supplier,
+                item.Nomenclature.Trim(),
+                item.PackCount.ToString(),
+                "0",
+                "—",
+                "—"))
             .ToList();
     }
 
-    db.Requests.Add(newRequest);
-    await db.SaveChangesAsync();
+    var newRequest = new RequestDto(
+        Id: GetNextRequestId(requests, now),
+        RequestDate: now.ToString("dd.MM.yyyy"),
+        RequestStatus: "Новый",
+        RequestContract: payload.RequestContract.Trim(),
+        LegalEntity: payload.LegalEntity.Trim(),
+        Supplier: supplier,
+        Nomenclature: payload.Nomenclature.Trim(),
+        Direction: payload.Direction.Trim(),
+        PowerOfAttorney: payload.PowerOfAttorney,
+        VehicleInfo: payload.VehicleInfo,
+        ShipmentLines: shipmentLines,
+        ContactPhone: string.IsNullOrWhiteSpace(payload.ContactPhone) ? null : payload.ContactPhone.Trim(),
+        LogisticsType: string.IsNullOrWhiteSpace(payload.LogisticsType) ? null : payload.LogisticsType.Trim());
 
-    return Results.Created($"/api/requests/{newRequest.Id}", MapRequestDto(newRequest));
+    requests.Insert(0, newRequest);
+
+    return Results.Created($"/api/requests/{newRequest.Id}", newRequest);
 });
 
-app.MapPatch("/api/requests/{id}/power-of-attorney", async (string id, UpdatePowerOfAttorneyDto payload, AppDbContext db) =>
+app.MapPatch("/api/requests/{id}/power-of-attorney", (string id, UpdatePowerOfAttorneyDto payload) =>
 {
-    var currentRequest = await db.Requests
-        .Include(request => request.ShipmentLines)
-        .FirstOrDefaultAsync(request => request.Id == id);
+    var requestIndex = requests.FindIndex(request => string.Equals(request.Id, id, StringComparison.OrdinalIgnoreCase));
 
-    if (currentRequest is null)
+    if (requestIndex < 0)
     {
         return Results.NotFound(new { message = "Заявка не найдена." });
     }
@@ -236,6 +258,7 @@ app.MapPatch("/api/requests/{id}/power-of-attorney", async (string id, UpdatePow
         return Results.BadRequest(new { message = "Не заполнены обязательные поля доверенности." });
     }
 
+    var currentRequest = requests[requestIndex];
     var deliveryAddress = payload.DeliveryAddress.Trim();
     var isLumberRequest = string.Equals(currentRequest.Nomenclature, "Пиломатериалы", StringComparison.OrdinalIgnoreCase);
 
@@ -244,31 +267,34 @@ app.MapPatch("/api/requests/{id}/power-of-attorney", async (string id, UpdatePow
         return Results.BadRequest(new { message = "Укажите пункт перехода границы для заявки по пиломатериалам." });
     }
 
-    currentRequest.RequestStatus = "Доверенность заполнена";
-    currentRequest.Direction = deliveryAddress;
-    currentRequest.PowerOfAttorney = new PowerOfAttorneyData
+    var updatedRequest = currentRequest with
     {
-        DriverFullName = payload.DriverFullName.Trim(),
-        DriverPhoneNumber = payload.DriverPhoneNumber.Trim(),
-        DeliveryAddress = deliveryAddress,
-        CarrierId = payload.CarrierId.Trim(),
-        CarrierName = payload.CarrierName.Trim(),
-        BorderCrossing = isLumberRequest ? payload.BorderCrossing?.Trim() : null,
-        Attachment = payload.Attachment is null
-            ? null
-            : new PowerOfAttorneyAttachmentData
-            {
-                FileName = payload.Attachment.FileName,
-                ContentType = payload.Attachment.ContentType,
-                FileSize = payload.Attachment.FileSize,
-                ContentBase64 = payload.Attachment.ContentBase64,
-            },
+        RequestStatus = "Доверенность заполнена",
+        Direction = deliveryAddress,
+        PowerOfAttorney = new PowerOfAttorneyDto(
+            payload.DriverFullName.Trim(),
+            payload.DriverPhoneNumber.Trim(),
+            deliveryAddress,
+            payload.CarrierId.Trim(),
+            payload.CarrierName.Trim(),
+            isLumberRequest ? payload.BorderCrossing?.Trim() : null,
+            payload.Attachment),
+        VehicleInfo = payload.VehicleInfo with
+        {
+            TractorId = payload.VehicleInfo.TractorId.Trim(),
+            TrailerId = payload.VehicleInfo.TrailerId.Trim(),
+            CarPlateNumber = payload.VehicleInfo.CarPlateNumber.Trim(),
+            TrailerPlateNumber = payload.VehicleInfo.TrailerPlateNumber.Trim(),
+            CarBrandAndModel = payload.VehicleInfo.CarBrandAndModel.Trim(),
+            TrailerBrandAndModel = payload.VehicleInfo.TrailerBrandAndModel.Trim()
+        },
+        ContactPhone = currentRequest.ContactPhone,
+        LogisticsType = currentRequest.LogisticsType
     };
-    currentRequest.VehicleInfo = MapVehicleInfo(payload.VehicleInfo);
 
-    await db.SaveChangesAsync();
+    requests[requestIndex] = updatedRequest;
 
-    return Results.Ok(MapRequestDto(currentRequest));
+    return Results.Ok(updatedRequest);
 });
 
 app.Run();
@@ -293,19 +319,14 @@ static HashSet<string> ParseLegalEntities(string? legalEntity, string? legalEnti
     return result;
 }
 
-static async Task<string> GetNextRequestIdAsync(AppDbContext db, DateTime date)
+static string GetNextRequestId(List<RequestDto> requests, DateTime date)
 {
     var year = date.Year;
     var yearPrefix = $"З-{year}-";
 
-    var ids = await db.Requests
-        .AsNoTracking()
-        .Where(request => request.Id.StartsWith(yearPrefix))
-        .Select(request => request.Id)
-        .ToListAsync();
-
-    var maxNumber = ids
-        .Select(id => id.Replace(yearPrefix, string.Empty))
+    var maxNumber = requests
+        .Where(request => request.Id.StartsWith(yearPrefix, StringComparison.Ordinal))
+        .Select(request => request.Id.Replace(yearPrefix, string.Empty))
         .Select(idPart => int.TryParse(idPart, out var numericPart) ? numericPart : 0)
         .DefaultIfEmpty(0)
         .Max();
@@ -313,93 +334,9 @@ static async Task<string> GetNextRequestIdAsync(AppDbContext db, DateTime date)
     return $"{yearPrefix}{(maxNumber + 1):0000}";
 }
 
-static RequestDto MapRequestDto(Request request) =>
-    new(
-        request.Id,
-        request.RequestDate,
-        request.RequestStatus,
-        request.RequestContract,
-        request.LegalEntity,
-        request.Supplier,
-        request.Nomenclature,
-        request.Direction,
-        request.PowerOfAttorney is null
-            ? null
-            : new PowerOfAttorneyDto(
-                request.PowerOfAttorney.DriverFullName,
-                request.PowerOfAttorney.DriverPhoneNumber,
-                request.PowerOfAttorney.DeliveryAddress,
-                request.PowerOfAttorney.CarrierId,
-                request.PowerOfAttorney.CarrierName,
-                request.PowerOfAttorney.BorderCrossing,
-                request.PowerOfAttorney.Attachment is null
-                    ? null
-                    : new PowerOfAttorneyAttachmentDto(
-                        request.PowerOfAttorney.Attachment.FileName,
-                        request.PowerOfAttorney.Attachment.ContentType,
-                        request.PowerOfAttorney.Attachment.FileSize,
-                        request.PowerOfAttorney.Attachment.ContentBase64)),
-        request.VehicleInfo is null
-            ? null
-            : new VehicleInfoDto(
-                request.VehicleInfo.TractorId,
-                request.VehicleInfo.TrailerId,
-                request.VehicleInfo.CarPlateNumber,
-                request.VehicleInfo.TrailerPlateNumber,
-                request.VehicleInfo.CarBrandAndModel,
-                request.VehicleInfo.TrailerBrandAndModel),
-        request.ShipmentLines
-            .OrderBy(line => line.LineNumber)
-            .Select(line => new ShipmentLineDto(
-                line.LineNumber,
-                line.Warehouse,
-                line.Nomenclature,
-                line.Quantity,
-                line.Shipped,
-                line.Price,
-                line.Amount))
-            .ToList(),
-        request.ContactPhone,
-        request.LogisticsType);
-
-static PowerOfAttorneyData? MapPowerOfAttorney(PowerOfAttorneyDto? payload) =>
-    payload is null
-        ? null
-        : new PowerOfAttorneyData
-        {
-            DriverFullName = payload.DriverFullName,
-            DriverPhoneNumber = payload.DriverPhoneNumber,
-            DeliveryAddress = payload.DeliveryAddress,
-            CarrierId = payload.CarrierId,
-            CarrierName = payload.CarrierName,
-            BorderCrossing = payload.BorderCrossing,
-            Attachment = payload.Attachment is null
-                ? null
-                : new PowerOfAttorneyAttachmentData
-                {
-                    FileName = payload.Attachment.FileName,
-                    ContentType = payload.Attachment.ContentType,
-                    FileSize = payload.Attachment.FileSize,
-                    ContentBase64 = payload.Attachment.ContentBase64,
-                },
-        };
-
-static VehicleInfoData? MapVehicleInfo(VehicleInfoDto? payload) =>
-    payload is null
-        ? null
-        : new VehicleInfoData
-        {
-            TractorId = payload.TractorId,
-            TrailerId = payload.TrailerId,
-            CarPlateNumber = payload.CarPlateNumber,
-            TrailerPlateNumber = payload.TrailerPlateNumber,
-            CarBrandAndModel = payload.CarBrandAndModel,
-            TrailerBrandAndModel = payload.TrailerBrandAndModel,
-        };
-
 record LoginRequest(string Login, string Password);
 
-record ContractDto(string Id, string LegalEntity, string ContractDate, string FactualBalance, string ContractCurrency);
+record ContractDto(string Id, string LegalEntity, string Supplier, string ContractDate, string FactualBalance, string ContractCurrency);
 
 record ShipmentLineDto(
     int LineNumber,

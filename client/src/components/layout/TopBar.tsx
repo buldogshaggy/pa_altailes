@@ -1,10 +1,12 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../features/auth'
 
 function TopBar() {
   const { user } = useAuth()
   const { pathname } = useLocation()
+  const [isLegalEntitiesOpen, setIsLegalEntitiesOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
 
   const pageTitle = useMemo(() => {
     if (pathname.startsWith('/reports')) {
@@ -18,6 +20,41 @@ function TopBar() {
     return 'Главная'
   }, [pathname])
 
+  const legalEntities = user?.legalEntities ?? []
+  const hasChildLegalEntities = legalEntities.length > 1
+
+  useEffect(() => {
+    if (!isLegalEntitiesOpen) {
+      return
+    }
+
+    const closeOnOutside = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (userMenuRef.current?.contains(target)) {
+        return
+      }
+      setIsLegalEntitiesOpen(false)
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsLegalEntitiesOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', closeOnOutside)
+    document.addEventListener('keydown', closeOnEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutside)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isLegalEntitiesOpen])
+
+  useEffect(() => {
+    setIsLegalEntitiesOpen(false)
+  }, [pathname])
+
   return (
     <header className="border-b border-slate-200 bg-white px-4 py-4 md:px-6 xl:px-8">
       <div className="flex items-center justify-between gap-4">
@@ -26,13 +63,68 @@ function TopBar() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden text-right sm:block">
-            <p className="text-sm font-semibold text-slate-800">{user?.fullName ?? 'Пользователь'}</p>
-            <p className="text-xs text-slate-500">{user?.company ?? 'Без компании'}</p>
-            {user && user.legalEntities.length > 1 ? (
-              <p className="text-xs text-slate-400">
-                Дочерних юрлиц: {user.legalEntities.length}
+          <div ref={userMenuRef} className="relative hidden sm:block">
+            <button
+              type="button"
+              disabled={!hasChildLegalEntities}
+              onClick={() => setIsLegalEntitiesOpen((open) => !open)}
+              aria-expanded={hasChildLegalEntities ? isLegalEntitiesOpen : undefined}
+              aria-haspopup={hasChildLegalEntities ? 'listbox' : undefined}
+              className={`rounded-lg px-2 py-1.5 text-right transition-colors ${
+                hasChildLegalEntities
+                  ? 'cursor-pointer hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400'
+                  : 'cursor-default'
+              }`}
+            >
+              <p className="text-sm font-semibold text-slate-800">
+                {user?.fullName ?? 'Пользователь'}
               </p>
+              <p className="text-xs text-slate-500">{user?.company ?? 'Без компании'}</p>
+              {hasChildLegalEntities ? (
+                <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-slate-400">
+                  Дочерних юрлиц: {legalEntities.length}
+                  <svg
+                    viewBox="0 0 20 20"
+                    className={`h-3.5 w-3.5 text-slate-400 transition-transform ${
+                      isLegalEntitiesOpen ? 'rotate-180' : ''
+                    }`}
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M5.5 7.5 10 12l4.5-4.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </p>
+              ) : null}
+            </button>
+
+            {hasChildLegalEntities && isLegalEntitiesOpen ? (
+              <div
+                role="listbox"
+                aria-label="Дочерние юридические лица"
+                className="absolute right-0 top-full z-30 mt-2 min-w-[16rem] rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+              >
+                <p className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  Юридические лица
+                </p>
+                <ul className="max-h-64 space-y-0.5 overflow-y-auto">
+                  {legalEntities.map((entity) => (
+                    <li
+                      key={entity}
+                      role="option"
+                      aria-selected={false}
+                      className="rounded-lg px-2.5 py-2 text-sm text-slate-700"
+                    >
+                      {entity}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
           </div>
         </div>

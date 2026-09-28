@@ -5,6 +5,7 @@ export const dashboardData: DashboardData = {
     {
       id: 'К-2024-0001',
       legalEntity: 'ООО Альфа Логистик',
+      supplier: 'Павловский ДОК',
       contractDate: '21.01.27',
       factualBalance: '9 560 000',
       contractCurrency: 'EUR',
@@ -12,6 +13,7 @@ export const dashboardData: DashboardData = {
     {
       id: 'К-2024-0002',
       legalEntity: 'ООО Альфа Логистик',
+      supplier: 'Рубцовский ЛДК',
       contractDate: '15.06.27',
       factualBalance: '4 200 000',
       contractCurrency: 'RUB',
@@ -19,6 +21,7 @@ export const dashboardData: DashboardData = {
     {
       id: 'К-2025-0001',
       legalEntity: 'ООО Куршавель',
+      supplier: 'Каменский ЛДК',
       contractDate: '21.02.27',
       factualBalance: '999 560 000',
       contractCurrency: 'USD',
@@ -26,6 +29,7 @@ export const dashboardData: DashboardData = {
     {
       id: 'К-2025-0002',
       legalEntity: 'ООО Куршавель',
+      supplier: 'ООО Содружество',
       contractDate: '10.05.27',
       factualBalance: '120 000 000',
       contractCurrency: 'RUB',
@@ -33,6 +37,7 @@ export const dashboardData: DashboardData = {
     {
       id: 'К-2026-0001',
       legalEntity: 'ООО Под Пальмой',
+      supplier: 'ООО Новичиха Лес',
       contractDate: '21.03.27',
       factualBalance: '10 560 000',
       contractCurrency: 'RUB',
@@ -40,6 +45,7 @@ export const dashboardData: DashboardData = {
     {
       id: 'К-2026-0002',
       legalEntity: 'ООО Под Пальмой',
+      supplier: 'Павловский ДОК',
       contractDate: '01.07.27',
       factualBalance: '8 300 000',
       contractCurrency: 'EUR',
@@ -47,6 +53,7 @@ export const dashboardData: DashboardData = {
     {
       id: 'К-2027-0001',
       legalEntity: 'ООО Викинг',
+      supplier: 'Рубцовский ЛДК',
       contractDate: '21.04.27',
       factualBalance: '15 560 000',
       contractCurrency: 'USD',
@@ -54,6 +61,7 @@ export const dashboardData: DashboardData = {
     {
       id: 'К-2027-0002',
       legalEntity: 'ООО Викинг',
+      supplier: 'Каменский ЛДК',
       contractDate: '18.08.27',
       factualBalance: '6 750 000',
       contractCurrency: 'RUB',

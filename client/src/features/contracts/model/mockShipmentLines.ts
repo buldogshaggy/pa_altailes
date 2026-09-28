@@ -12,12 +12,12 @@ export function createShipmentLine(
   return { lineNumber, warehouse, nomenclature, quantity, shipped, price, amount }
 }
 
-/** Демо-строки отгрузки. Позже будут приходить из 1С. */
+/** Демо-строки отгрузки. Склад = поставщик по виду продукции. */
 export const DEMO_SHIPMENT_LINES = {
   mdfMixed: [
     createShipmentLine(
       1,
-      'Рубцовский ЛДК',
+      'Павловский ДОК',
       'MDF 16 мм, 2800х2070х16',
       '120',
       '120',
@@ -26,7 +26,7 @@ export const DEMO_SHIPMENT_LINES = {
     ),
     createShipmentLine(
       2,
-      'Рубцовский ЛДК',
+      'Павловский ДОК',
       'MDF 22 мм, 2800х2070х22',
       '80',
       '80',
@@ -37,7 +37,7 @@ export const DEMO_SHIPMENT_LINES = {
   mdfPartial: [
     createShipmentLine(
       1,
-      'Каменский ЛДК',
+      'Павловский ДОК',
       'MDF 16 мм, 2800х2070х16',
       '95',
       '95',
@@ -46,7 +46,7 @@ export const DEMO_SHIPMENT_LINES = {
     ),
     createShipmentLine(
       2,
-      'Каменский ЛДК',
+      'Павловский ДОК',
       'MDF 22 мм, 2800х2070х22',
       '60',
       '48',
@@ -57,7 +57,7 @@ export const DEMO_SHIPMENT_LINES = {
   singleMdf16: [
     createShipmentLine(
       1,
-      'Рубцовский ЛДК',
+      'Павловский ДОК',
       'MDF 16 мм, 2800х2070х16',
       '45',
       '0',
@@ -68,7 +68,7 @@ export const DEMO_SHIPMENT_LINES = {
   singleMdf22: [
     createShipmentLine(
       1,
-      'Каменский ЛДК',
+      'Павловский ДОК',
       'MDF 22 мм, 2800х2070х22',
       '32',
       '0',
@@ -80,15 +80,26 @@ export const DEMO_SHIPMENT_LINES = {
     createShipmentLine(1, 'ООО Содружество', 'Молдинг, 40х20', '500', '0', '185,00', '92 500,00'),
   ],
   singlePlinth: [
-    createShipmentLine(1, 'Рубцовский ЛДК', 'Плинтус, 80 мм', '300', '180', '210,00', '37 800,00'),
+    createShipmentLine(1, 'ООО Новичиха Лес', 'Плинтус, 80 мм', '300', '180', '210,00', '37 800,00'),
   ],
   singleJamb: [
     createShipmentLine(1, 'ООО Содружество', 'Наличник, 70х20', '220', '0', '195,00', '42 900,00'),
   ],
-  singleLumber: [
+  singleLumberRubtsovsk: [
     createShipmentLine(
       1,
       'Рубцовский ЛДК',
+      'Доска обрезная 50х150х6000, 1 сорт',
+      '120',
+      '0',
+      '18 500,00',
+      '2 220 000,00',
+    ),
+  ],
+  singleLumberKamensk: [
+    createShipmentLine(
+      1,
+      'Каменский ЛДК',
       'Доска обрезная 50х150х6000, 1 сорт',
       '120',
       '0',
