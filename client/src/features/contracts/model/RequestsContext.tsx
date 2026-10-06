@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useAuth } from '../../auth'
+import { isDemoMode } from '../../../config'
 import type { CreateRequestPayload, RequestRow, UpdatePowerOfAttorneyPayload } from './types'
 import { createRequestOnServer, fetchRequests, updatePowerOfAttorneyOnServer } from './requestsApi'
 import { REQUEST_STATUSES } from './requestStatuses'
@@ -212,6 +213,14 @@ export function RequestsProvider({ children }: Props) {
     setIsLoading(true)
     setError('')
 
+    if (isDemoMode) {
+      setRequests(
+        mockRequests.filter((request) => legalEntities.includes(request.legalEntity)),
+      )
+      setIsLoading(false)
+      return
+    }
+
     try {
       const nextRequests = await fetchRequests(legalEntities)
       setRequests(nextRequests)
@@ -263,6 +272,10 @@ export function RequestsProvider({ children }: Props) {
     }
 
     try {
+      if (isDemoMode) {
+        throw new Error('demo-mode')
+      }
+
       const createdRequests: RequestRow[] = []
 
       for (let index = 0; index < vehicleCount; index += 1) {
@@ -300,11 +313,14 @@ export function RequestsProvider({ children }: Props) {
 
         return nextRequests
       })
-      setError(
-        vehicleCount > 1
-          ? `API недоступен: создано ${vehicleCount} одинаковых заявок локально (демо-режим).`
-          : 'API недоступен: заявка сохранена локально (демо-режим).',
-      )
+
+      if (!isDemoMode) {
+        setError(
+          vehicleCount > 1
+            ? `API недоступен: создано ${vehicleCount} одинаковых заявок локально (демо-режим).`
+            : 'API недоступен: заявка сохранена локально (демо-режим).',
+        )
+      }
     }
   }, [])
 
@@ -312,6 +328,10 @@ export function RequestsProvider({ children }: Props) {
     setError('')
 
     try {
+      if (isDemoMode) {
+        throw new Error('demo-mode')
+      }
+
       const updatedRequest = await updatePowerOfAttorneyOnServer(requestId, payload)
       setRequests((prevRequests) =>
         prevRequests.map((request) => (request.id === requestId ? updatedRequest : request)),
@@ -349,7 +369,10 @@ export function RequestsProvider({ children }: Props) {
             : request,
         ),
       )
-      setError('API недоступен: доверенность сохранена локально (демо-режим).')
+
+      if (!isDemoMode) {
+        setError('API недоступен: доверенность сохранена локально (демо-режим).')
+      }
     }
   }, [])
 

@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState } from 'react'
 import { http } from '../../../api/http'
+import { isDemoMode } from '../../../config'
 
 type AuthUser = {
   fullName: string
@@ -15,7 +16,29 @@ type AuthContextValue = {
   logout: () => void
 }
 
+type DemoUserCredentials = {
+  password: string
+  fullName: string
+  company: string
+  legalEntities: string[]
+}
+
 const AUTH_STORAGE_KEY = 'pa-altailes-auth-user'
+
+const DEMO_USERS: Record<string, DemoUserCredentials> = {
+  demo: {
+    password: 'demo123',
+    fullName: 'Иванов И. И.',
+    company: 'ООО Альфа Логистик',
+    legalEntities: ['ООО Альфа Логистик'],
+  },
+  holding: {
+    password: 'holding123',
+    fullName: 'Сидоров С. С.',
+    company: 'ГК Алтайлес',
+    legalEntities: ['ООО Куршавель', 'ООО Под Пальмой', 'ООО Викинг'],
+  },
+}
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
@@ -54,6 +77,39 @@ const normalizeUser = (raw: unknown): AuthUser | null => {
   }
 }
 
+const loginWithDemoUsers = (loginValue: string, password: string): AuthUser => {
+  const candidate = DEMO_USERS[loginValue]
+
+  if (!candidate || candidate.password !== password) {
+    throw new Error('Неверный логин или пароль')
+  }
+
+  return {
+    fullName: candidate.fullName,
+    company: candidate.company,
+    login: loginValue,
+    legalEntities: candidate.legalEntities,
+  }
+}
+
+const hydrateDemoUser = (user: AuthUser): AuthUser => {
+  const demoProfile = DEMO_USERS[user.login]
+
+  if (!demoProfile) {
+    return {
+      ...user,
+      legalEntities: normalizeLegalEntities(user.legalEntities, user.company),
+    }
+  }
+
+  return {
+    login: user.login,
+    fullName: demoProfile.fullName,
+    company: demoProfile.company,
+    legalEntities: demoProfile.legalEntities,
+  }
+}
+
 const readStoredUser = (): AuthUser | null => {
   const raw = localStorage.getItem(AUTH_STORAGE_KEY)
 
@@ -62,7 +118,13 @@ const readStoredUser = (): AuthUser | null => {
   }
 
   try {
-    return normalizeUser(JSON.parse(raw))
+    const normalized = normalizeUser(JSON.parse(raw))
+
+    if (!normalized) {
+      return null
+    }
+
+    return isDemoMode ? hydrateDemoUser(normalized) : normalized
   } catch {
     return null
   }
@@ -76,9 +138,19 @@ export function AuthProvider({ children }: Props) {
   const [user, setUser] = useState<AuthUser | null>(() => readStoredUser())
 
   const login = async (loginValue: string, password: string) => {
+    const trimmedLogin = loginValue.trim()
+
+    if (isDemoMode) {
+      await new Promise((resolve) => setTimeout(resolve, 200))
+      const nextUser = loginWithDemoUsers(trimmedLogin, password)
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser))
+      setUser(nextUser)
+      return
+    }
+
     try {
       const { data } = await http.post('/api/auth/login', {
-        login: loginValue.trim(),
+        login: trimmedLogin,
         password,
       })
 
@@ -90,7 +162,14 @@ export function AuthProvider({ children }: Props) {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser))
       setUser(nextUser)
     } catch {
-      throw new Error('Неверный логин или пароль')
+      // Локальный fallback, если API выключен
+      try {
+        const nextUser = loginWithDemoUsers(trimmedLogin, password)
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextUser))
+        setUser(nextUser)
+      } catch {
+        throw new Error('Неверный логин или пароль')
+      }
     }
   }
 

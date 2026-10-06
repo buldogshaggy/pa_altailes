@@ -9,22 +9,27 @@
 - `client` - фронтенд
 - `server/Api` - бэкенд
 
-## База данных
-В Postgres хранятся:
-- пользователи (`users`) — `demo` / `demo123`, `holding` / `holding123`
-- контракты (`contracts`)
+## GitHub Pages (демо для коллег)
+Публикация идёт в **демо-режиме** (`VITE_DEMO_MODE=true`):
+- логин локальный: `demo` / `demo123`, `holding` / `holding123`
+- контракты и заявки из моков во фронте
+- API и Postgres не нужны
 
-Заявки пока живут в памяти API (позже — 1С), в БД не сохраняются.
+## Локально с базой
+1. Postgres + API (`cd server/Api && dotnet run`)
+2. В `client/.env`:
+   ```
+   VITE_API_URL=http://localhost:5000
+   VITE_DEMO_MODE=false
+   ```
+3. `cd client && npm run dev`
 
-Строка подключения: `appsettings.Development.json`  
-Пользователь БД: `pa_app` / `pa_app_pass`
+В Postgres хранятся пользователи и контракты. Заявки пока в памяти API / на фронте.
 
 ## Frontend
 1. `cd client`
 2. `npm install`
 3. `npm run dev`
-
-API URL по умолчанию: `http://localhost:5000`.
 
 ## Backend
 1. .NET SDK 8.0+
