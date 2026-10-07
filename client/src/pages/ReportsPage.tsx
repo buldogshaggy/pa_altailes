@@ -73,14 +73,14 @@ function ReportsPage() {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="inline-flex rounded-md bg-sky-100 px-3 py-1 text-3xl font-bold text-slate-900">
+      <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <h2 className="inline-flex rounded-md bg-sky-100 px-3 py-1 text-xl font-bold text-slate-900 sm:text-2xl md:text-3xl">
           Ежедневный отчет
         </h2>
 
         <div className="mt-4 max-w-xl divide-y divide-slate-100 rounded-lg border border-slate-200">
           {dailyMetrics.map((metric) => (
-            <div key={metric.label} className="grid grid-cols-2 gap-3 px-4 py-2.5 text-sm">
+            <div key={metric.label} className="grid grid-cols-2 gap-2 px-3 py-2.5 text-sm sm:gap-3 sm:px-4">
               <span className="text-slate-700">{metric.label}</span>
               <span className="text-right font-semibold text-slate-900">{metric.value}</span>
             </div>
@@ -89,11 +89,12 @@ function ReportsPage() {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <h3 className="mb-3 inline-flex rounded-md bg-emerald-100 px-3 py-1 text-3xl font-bold text-slate-900">
+        <h3 className="mb-1 inline-flex rounded-md bg-emerald-100 px-3 py-1 text-xl font-bold text-slate-900 sm:text-2xl md:text-3xl">
           Отгружено
         </h3>
+        <p className="mb-3 text-xs text-slate-500 md:hidden">Листайте таблицу вбок</p>
 
-        <div className="overflow-x-auto">
+        <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
           <table className="min-w-[1220px] border-separate border-spacing-0 text-sm">
             <thead>
               <tr>
@@ -134,11 +135,12 @@ function ReportsPage() {
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <h3 className="mb-3 inline-flex rounded-md bg-rose-100 px-3 py-1 text-3xl font-bold text-slate-900">
+        <h3 className="mb-1 inline-flex rounded-md bg-rose-100 px-3 py-1 text-xl font-bold text-slate-900 sm:text-2xl md:text-3xl">
           В работе
         </h3>
+        <p className="mb-3 text-xs text-slate-500 md:hidden">Листайте таблицу вбок</p>
 
-        <div className="overflow-x-auto">
+        <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
           <table className="min-w-[1220px] border-separate border-spacing-0 text-sm">
             <thead>
               <tr>

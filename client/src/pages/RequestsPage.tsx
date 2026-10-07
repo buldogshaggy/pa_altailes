@@ -172,18 +172,18 @@ function RequestsPage() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+    <div className="flex flex-col gap-3 sm:gap-4 lg:h-full lg:min-h-0 lg:overflow-hidden">
+      <section className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4 md:p-5 lg:min-h-0 lg:flex-1">
         <div className="relative mb-4 shrink-0">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <h2 className="text-2xl font-bold text-slate-800">Заявки</h2>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-xl font-bold text-slate-800 sm:text-2xl">Заявки</h2>
 
             <div className="flex flex-wrap gap-2">
               <button
                 ref={filtersButtonRef}
                 type="button"
                 onClick={() => setIsFiltersOpen((prevState) => !prevState)}
-                className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
+                className={`rounded-lg border px-3 py-2 text-sm font-semibold sm:px-4 ${
                   isFiltersOpen || activeFiltersCount > 0
                     ? 'border-blue-500 bg-blue-50 text-blue-700'
                     : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
@@ -266,7 +266,7 @@ function RequestsPage() {
         {error ? <p className="mb-3 shrink-0 text-sm text-rose-600">{error}</p> : null}
 
         <div className="mb-0 flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="flex shrink-0 items-end gap-1 overflow-x-auto overflow-y-hidden border-b border-slate-200">
+          <div className="-mx-1 flex shrink-0 items-end gap-1 overflow-x-auto overflow-y-hidden border-b border-slate-200 px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {SUPPLIERS.map((supplier) => {
               const isActive = selectedSupplierTab === supplier
               const count = requestCountsBySupplier[supplier]
@@ -276,7 +276,7 @@ function RequestsPage() {
                   key={supplier}
                   type="button"
                   onClick={() => handleSupplierTabChange(supplier)}
-                  className={`relative -mb-px shrink-0 rounded-t-lg border px-3 py-2 text-sm font-semibold leading-5 transition-colors ${
+                  className={`relative -mb-px shrink-0 rounded-t-lg border px-2.5 py-2 text-xs font-semibold leading-5 transition-colors sm:px-3 sm:text-sm ${
                     isActive
                       ? 'border-slate-200 border-b-white bg-white text-blue-700'
                       : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'
@@ -284,7 +284,7 @@ function RequestsPage() {
                 >
                   <span className="whitespace-nowrap">{supplier}</span>
                   <span
-                    className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-xs ${
+                    className={`ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-xs sm:ml-2 ${
                       isActive ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500'
                     }`}
                   >
@@ -295,7 +295,7 @@ function RequestsPage() {
             })}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto rounded-b-lg border border-t-0 border-slate-200">
+          <div className="min-h-[12rem] flex-1 overflow-auto rounded-b-lg border border-t-0 border-slate-200 lg:min-h-0">
             <RequestsDataTable
               requests={filteredRequests}
               selectedRequestId={selectedRequestId}
@@ -307,15 +307,15 @@ function RequestsPage() {
       </section>
 
       <section
-        className={`flex shrink-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5 ${
-          selectedRequest ? 'h-[17.5rem] md:h-[18.5rem]' : ''
+        className={`flex shrink-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4 md:p-5 ${
+          selectedRequest ? 'max-h-[22rem] lg:h-[18.5rem] lg:max-h-none' : ''
         }`}
       >
-        <div className="mb-3 flex shrink-0 items-center justify-between gap-3">
-          <h3 className="text-lg font-bold text-slate-800">
+        <div className="mb-3 flex shrink-0 items-start justify-between gap-3 sm:items-center">
+          <h3 className="text-base font-bold text-slate-800 sm:text-lg">
             Отгружаемая продукция
             {selectedRequest ? (
-              <span className="ml-2 text-sm font-semibold text-slate-500">
+              <span className="mt-0.5 block text-sm font-semibold text-slate-500 sm:ml-2 sm:mt-0 sm:inline">
                 · {selectedRequest.id}
               </span>
             ) : null}
@@ -324,14 +324,14 @@ function RequestsPage() {
             <button
               type="button"
               onClick={() => setSelectedRequestId(null)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
             >
               Закрыть
             </button>
           ) : null}
         </div>
 
-        <div className={`min-h-0 ${selectedRequest ? 'flex-1 overflow-hidden' : ''}`}>
+        <div className={`min-h-0 ${selectedRequest ? 'flex-1 overflow-auto' : ''}`}>
           {selectedRequest ? (
             <ShipmentLinesTable lines={getShipmentLines(selectedRequest)} />
           ) : (

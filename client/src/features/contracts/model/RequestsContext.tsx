@@ -80,12 +80,7 @@ const mockRequests: RequestRow[] = [
       deliveryAddress: 'Челябинск',
       carrierId: 'carrier-trans-ural',
       carrierName: 'ООО «Транс-Урал»',
-      attachment: {
-        fileName: 'доверенность-з-2026-0005.pdf',
-        fileSize: 245_760,
-        contentType: 'application/pdf',
-        contentBase64: '',
-      },
+      comment: 'Самовывоз со склада Павловский ДОК',
     },
     vehicleInfo: {
       tractorId: 'tractor-tu-1',
@@ -345,7 +340,7 @@ export function RequestsProvider({ children }: Props) {
         borderCrossing,
         carrierId,
         carrierName,
-        attachment,
+        comment,
       } = payload
 
       setRequests((prevRequests) =>
@@ -361,7 +356,7 @@ export function RequestsProvider({ children }: Props) {
                   borderCrossing,
                   carrierId,
                   carrierName,
-                  attachment,
+                  comment,
                 },
                 vehicleInfo,
                 requestStatus: REQUEST_STATUSES.powerOfAttorneyFilled,

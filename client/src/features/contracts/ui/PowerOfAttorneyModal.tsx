@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type RefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import {
   MOCK_CARRIERS,
   findCarrierById,
@@ -10,13 +10,8 @@ import {
   type CarrierTrailerMatch,
 } from '../model/carriers'
 import { formatPhoneMask, isValidRussianPhone } from '../model/phoneMask'
-import { formatFileSize, readPoaAttachment } from '../model/poaAttachment'
 import { getRequestProductKind, isLumberRequest } from '../model/shipmentLines'
-import type {
-  PowerOfAttorneyAttachment,
-  RequestRow,
-  UpdatePowerOfAttorneyPayload,
-} from '../model/types'
+import type { RequestRow, UpdatePowerOfAttorneyPayload } from '../model/types'
 import Select from '../../../components/ui/Select'
 
 type Props = {
@@ -137,8 +132,7 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
   const [isTractorListOpen, setIsTractorListOpen] = useState(false)
   const [isTrailerListOpen, setIsTrailerListOpen] = useState(false)
   const [submitError, setSubmitError] = useState('')
-  const [attachmentError, setAttachmentError] = useState('')
-  const [attachment, setAttachment] = useState<PowerOfAttorneyAttachment | null>(null)
+  const [comment, setComment] = useState('')
   const [phoneTouched, setPhoneTouched] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const tractorFieldRef = useRef<HTMLDivElement>(null)
@@ -165,11 +159,10 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
     setSelectedTrailerId(savedVehicle?.trailerId ?? '')
     setTractorQuery(savedVehicle?.carPlateNumber ?? '')
     setTrailerQuery(savedVehicle?.trailerPlateNumber ?? '')
-    setAttachment(request.powerOfAttorney?.attachment ?? null)
+    setComment(request.powerOfAttorney?.comment ?? '')
     setIsTractorListOpen(false)
     setIsTrailerListOpen(false)
     setSubmitError('')
-    setAttachmentError('')
     setPhoneTouched(false)
     setIsSaving(false)
   }, [isOpen, request])
@@ -309,25 +302,6 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
     }
   }
 
-  const handleAttachmentChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) {
-      return
-    }
-
-    setAttachmentError('')
-
-    try {
-      const nextAttachment = await readPoaAttachment(file)
-      setAttachment(nextAttachment)
-    } catch (error) {
-      setAttachment(null)
-      setAttachmentError(error instanceof Error ? error.message : 'Не удалось прикрепить файл')
-    }
-  }
-
   const handleSave = async () => {
     setPhoneTouched(true)
 
@@ -346,7 +320,7 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
         borderCrossing: needsBorderCrossing ? borderCrossing.trim() : undefined,
         carrierId: selectedCarrier.id,
         carrierName: selectedCarrier.name,
-        attachment: attachment ?? undefined,
+        comment: comment.trim() || undefined,
         vehicleInfo: {
           tractorId: selectedTractor.id,
           trailerId: selectedTrailer.id,
@@ -365,14 +339,19 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 shadow-xl md:p-6">
-        <div className="mb-5 flex items-start justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-slate-800">{modalTitle}</h3>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4">
+      <div className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl sm:p-5 md:p-6">
+        <div className="mb-4 flex items-start justify-between gap-3 sm:mb-5">
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold text-slate-800 sm:text-xl">{modalTitle}</h3>
             <p className="mt-1 text-sm text-slate-500">
               Заявка {request.id} · {getRequestProductKind(request)}
-              {isEditing ? ' · нажмите «Сохранить изменения», чтобы обновить данные' : null}
+              {isEditing ? (
+                <span className="hidden sm:inline">
+                  {' '}
+                  · нажмите «Сохранить изменения», чтобы обновить данные
+                </span>
+              ) : null}
             </p>
           </div>
 
@@ -380,7 +359,7 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
             type="button"
             onClick={onClose}
             aria-label="Закрыть модальное окно"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 text-xl leading-none text-slate-600 hover:bg-slate-50"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-xl leading-none text-slate-600 hover:bg-slate-50"
           >
             ×
           </button>
@@ -552,45 +531,20 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
             </>
           ) : null}
 
-          <div className="relative md:col-span-2">
-            <label className="block text-sm font-semibold text-slate-700">
-              Файл доверенности
-              <input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,application/pdf,image/jpeg,image/png"
-                onChange={handleAttachmentChange}
-                className="mt-1 block w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
-              />
-            </label>
-            <p className="mt-1 text-xs text-slate-500">
-              PDF, JPG, PNG, DOC, DOCX до {formatFileSize(5 * 1024 * 1024)}
-            </p>
-
-            {attachment ? (
-              <div className="mt-3 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{attachment.fileName}</p>
-                  <p className="text-xs text-slate-500">{formatFileSize(attachment.fileSize)}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setAttachment(null)}
-                  className="text-sm font-semibold text-rose-600 hover:text-rose-700"
-                >
-                  Удалить
-                </button>
-              </div>
-            ) : null}
-
-            {attachmentError ? (
-              <p className="pointer-events-none absolute left-0 top-full z-10 mt-0.5 text-sm text-rose-600">
-                {attachmentError}
-              </p>
-            ) : null}
-          </div>
+          <label className="block text-sm font-semibold text-slate-700 md:col-span-2">
+            Комментарий
+            <input
+              type="text"
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              placeholder="Необязательно"
+              maxLength={200}
+              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400"
+            />
+          </label>
         </div>
 
-        <div className="relative mt-6 flex justify-end gap-2">
+        <div className="relative mt-6 flex flex-col-reverse gap-2 pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end">
           {submitError ? (
             <p className="pointer-events-none absolute inset-x-0 bottom-full z-10 mb-1 text-sm text-rose-600">
               {submitError}
@@ -599,7 +553,7 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:py-2"
           >
             Отмена
           </button>
@@ -608,7 +562,7 @@ function PowerOfAttorneyModal({ request, isOpen, onSave, onClose }: Props) {
             type="button"
             onClick={handleSave}
             disabled={!canSave || isSaving}
-            className="rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-blue-600 bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:py-2"
           >
             {isSaving ? 'Сохранение...' : saveLabel}
           </button>

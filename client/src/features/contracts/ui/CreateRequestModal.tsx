@@ -310,11 +310,11 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3">
-      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
-        <div className="shrink-0 border-b border-slate-100 px-4 py-3">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-3">
+      <div className="flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-2xl">
+        <div className="shrink-0 border-b border-slate-100 px-3 py-3 sm:px-4">
           <div className="flex items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <h3 className="text-lg font-bold text-slate-800">Создать заявку</h3>
               <p className="mt-0.5 text-xs text-slate-500">
                 Шаг {requestStep} из {totalSteps}: {stepLabels[requestStep - 1]}
@@ -696,9 +696,9 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
         )}
         </div>
 
-        <div className="relative shrink-0 border-t border-slate-100 px-4 py-3">
+        <div className="relative shrink-0 border-t border-slate-100 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
           {submitError ? (
-            <p className="pointer-events-none absolute inset-x-4 bottom-full z-10 mb-1 text-xs text-rose-600">
+            <p className="pointer-events-none absolute inset-x-3 bottom-full z-10 mb-1 text-xs text-rose-600 sm:inset-x-4">
               {submitError}
             </p>
           ) : null}
@@ -708,18 +708,18 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
               type="button"
               onClick={() => setRequestStep((prevStep) => Math.max(prevStep - 1, 1))}
               disabled={requestStep === 1 || isSubmitting}
-              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50 sm:py-1.5"
             >
               Назад
             </button>
 
-            <div className="flex gap-2">
+            <div className="flex min-w-0 gap-2">
               {requestStep < totalSteps && (
                 <button
                   type="button"
                   onClick={() => setRequestStep((prevStep) => prevStep + 1)}
                   disabled={!canGoNext}
-                  className="rounded-md border border-blue-600 bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-md border border-blue-600 bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:py-1.5"
                 >
                   Далее
                 </button>
@@ -730,7 +730,7 @@ function CreateRequestModal({ isOpen, contracts, onCreate, onClose }: Props) {
                   type="button"
                   onClick={submitCreateRequest}
                   disabled={!canCreateRequest || isSubmitting}
-                  className="rounded-md border border-blue-600 bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="truncate rounded-md border border-blue-600 bg-blue-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 sm:py-1.5"
                 >
                   {isSubmitting
                     ? 'Создание...'

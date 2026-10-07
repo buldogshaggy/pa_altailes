@@ -1,16 +1,19 @@
+import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import Sidebar from './components/layout/Sidebar'
 import TopBar from './components/layout/TopBar'
 
 function App() {
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f3f6fb] text-slate-900">
-      <Sidebar />
+    <div className="flex h-dvh overflow-hidden bg-[#f3f6fb] text-slate-900">
+      <Sidebar isMobileOpen={isMobileNavOpen} onMobileClose={() => setIsMobileNavOpen(false)} />
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <TopBar />
+        <TopBar onMenuOpen={() => setIsMobileNavOpen(true)} />
 
-        <main className="min-h-0 flex-1 overflow-auto p-4 md:p-6 xl:p-8">
+        <main className="min-h-0 flex-1 overflow-auto p-3 sm:p-4 md:p-6 xl:p-8">
           <Outlet />
         </main>
       </div>

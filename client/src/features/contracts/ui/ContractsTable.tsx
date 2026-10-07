@@ -9,74 +9,107 @@ type Props = {
 }
 
 function ContractsDataTable({ contracts }: { contracts: Contract[] }) {
+  if (contracts.length === 0) {
+    return (
+      <p className="px-3 py-6 text-center text-sm text-slate-500">
+        По выбранным фильтрам контрактов не найдено
+      </p>
+    )
+  }
+
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full table-fixed border-separate border-spacing-0 text-sm">
-        <colgroup>
-          <col className="w-[16%]" />
-          <col className="w-[18%]" />
-          <col className="w-[14%]" />
-          <col className="w-[16%]" />
-          <col className="w-[10%]" />
-          <col className="w-[26%]" />
-        </colgroup>
-        <thead>
-          <tr>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
-              Наименование
-            </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
-              Поставщик
-            </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
-              Срок действия
-            </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
-              Сумма
-            </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
-              Валюта
-            </th>
-            <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
-              Организация
-            </th>
-          </tr>
-        </thead>
+    <>
+      <div className="space-y-2 md:hidden">
+        {contracts.map((contract) => (
+          <article
+            key={contract.id}
+            className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-3"
+          >
+            <p className="font-semibold text-blue-600">{contract.id}</p>
+            <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+              <div className="col-span-2">
+                <dt className="text-slate-400">Поставщик</dt>
+                <dd className="font-medium text-slate-700">{contract.supplier}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400">Срок</dt>
+                <dd className="font-medium text-slate-700">{contract.contractDate}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-400">Баланс</dt>
+                <dd className="font-medium text-slate-700">
+                  {contract.factualBalance} {contract.contractCurrency}
+                </dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-slate-400">Организация</dt>
+                <dd className="font-medium text-slate-700">{contract.legalEntity}</dd>
+              </div>
+            </dl>
+          </article>
+        ))}
+      </div>
 
-        <tbody>
-          {contracts.map((contract) => (
-            <tr key={contract.id}>
-              <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 font-semibold text-blue-600">
-                {contract.id}
-              </td>
-              <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-slate-700">
-                {contract.supplier}
-              </td>
-              <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-slate-700">
-                {contract.contractDate}
-              </td>
-              <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-slate-700">
-                {contract.factualBalance}
-              </td>
-              <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 font-semibold text-slate-700">
-                {contract.contractCurrency}
-              </td>
-              <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 font-semibold text-slate-700">
-                {contract.legalEntity}
-              </td>
-            </tr>
-          ))}
-
-          {contracts.length === 0 && (
+      <div className="hidden overflow-x-auto md:block">
+        <table className="min-w-[680px] w-full border-separate border-spacing-0 text-sm lg:min-w-full lg:table-fixed">
+          <colgroup>
+            <col className="w-[16%]" />
+            <col className="w-[18%]" />
+            <col className="w-[14%]" />
+            <col className="w-[16%]" />
+            <col className="w-[10%]" />
+            <col className="w-[26%]" />
+          </colgroup>
+          <thead>
             <tr>
-              <td className="px-3 py-6 text-center text-sm text-slate-500" colSpan={6}>
-                По выбранным фильтрам контрактов не найдено
-              </td>
+              <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
+                Наименование
+              </th>
+              <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
+                Поставщик
+              </th>
+              <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
+                Срок действия
+              </th>
+              <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
+                Баланс
+              </th>
+              <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
+                Валюта
+              </th>
+              <th className="border-b border-slate-200 px-3 py-3 text-left font-semibold text-slate-600">
+                Организация
+              </th>
             </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+
+          <tbody>
+            {contracts.map((contract) => (
+              <tr key={contract.id}>
+                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 font-semibold text-blue-600">
+                  {contract.id}
+                </td>
+                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-slate-700">
+                  {contract.supplier}
+                </td>
+                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-slate-700">
+                  {contract.contractDate}
+                </td>
+                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 text-slate-700">
+                  {contract.factualBalance}
+                </td>
+                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 font-semibold text-slate-700">
+                  {contract.contractCurrency}
+                </td>
+                <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3 font-semibold text-slate-700">
+                  {contract.legalEntity}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }
 
@@ -154,17 +187,17 @@ function ContractsTable({ contracts }: Props) {
   }, [isFiltersOpen])
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+    <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4 md:p-5">
       <div className="relative mb-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-2xl font-bold text-slate-800">Контракты</h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-xl font-bold text-slate-800 sm:text-2xl">Контракты</h2>
 
           <div className="flex flex-wrap gap-2">
             <button
               ref={filtersButtonRef}
               type="button"
               onClick={() => setIsFiltersOpen((prevState) => !prevState)}
-              className={`rounded-lg border px-4 py-2 text-sm font-semibold ${
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold sm:px-4 ${
                 isFiltersOpen || activeFiltersCount > 0
                   ? 'border-blue-500 bg-blue-50 text-blue-700'
                   : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
@@ -175,7 +208,7 @@ function ContractsTable({ contracts }: Props) {
 
             <button
               type="button"
-              className="rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+              className="rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 sm:px-4"
               onClick={() => setIsCreateRequestModalOpen(true)}
             >
               + Создать заявку

@@ -69,7 +69,7 @@ var requests = new List<RequestDto>
             "carrier-trans-ural",
             "ООО «Транс-Урал»",
             null,
-            new PowerOfAttorneyAttachmentDto("доверенность-з-2026-0005.pdf", "application/pdf", 245760, null)),
+            "Самовывоз со склада Павловский ДОК"),
         new VehicleInfoDto("tractor-tu-1", "trailer-tu-1", "А123ВС174", "АВ1234 74", "Volvo FH16", "Schmitz Cargobull"),
         new List<ShipmentLineDto>
         {
@@ -278,7 +278,7 @@ app.MapPatch("/api/requests/{id}/power-of-attorney", (string id, UpdatePowerOfAt
             payload.CarrierId.Trim(),
             payload.CarrierName.Trim(),
             isLumberRequest ? payload.BorderCrossing?.Trim() : null,
-            payload.Attachment),
+            string.IsNullOrWhiteSpace(payload.Comment) ? null : payload.Comment.Trim()),
         VehicleInfo = payload.VehicleInfo with
         {
             TractorId = payload.VehicleInfo.TractorId.Trim(),
@@ -386,7 +386,7 @@ record UpdatePowerOfAttorneyDto(
     string CarrierName,
     VehicleInfoDto VehicleInfo,
     string? BorderCrossing = null,
-    PowerOfAttorneyAttachmentDto? Attachment = null);
+    string? Comment = null);
 
 record PowerOfAttorneyDto(
     string DriverFullName,
@@ -395,13 +395,7 @@ record PowerOfAttorneyDto(
     string CarrierId,
     string CarrierName,
     string? BorderCrossing = null,
-    PowerOfAttorneyAttachmentDto? Attachment = null);
-
-record PowerOfAttorneyAttachmentDto(
-    string FileName,
-    string ContentType,
-    long FileSize,
-    string? ContentBase64);
+    string? Comment = null);
 
 record VehicleInfoDto(
     string TractorId,

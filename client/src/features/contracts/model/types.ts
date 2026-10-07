@@ -52,13 +52,6 @@ export type CreateRequestPayload = {
   volume?: string
 }
 
-export type PowerOfAttorneyAttachment = {
-  fileName: string
-  fileSize: number
-  contentType: string
-  contentBase64: string
-}
-
 export type PowerOfAttorneyDetails = {
   driverFullName: string
   driverPhoneNumber: string
@@ -67,7 +60,7 @@ export type PowerOfAttorneyDetails = {
   borderCrossing?: string
   carrierId: string
   carrierName: string
-  attachment?: PowerOfAttorneyAttachment
+  comment?: string
 }
 
 export type CarrierTractor = {
